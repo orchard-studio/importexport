@@ -7,47 +7,45 @@ var importURL;
 var startTime;
 var fieldIDs;
 
+
 jQuery(function($){
     // Window resize function (for adjusting the height of the console):
     $(window).resize(function(){
         $("div.console").height($(window).height() - 350);
     }).resize();
-
-    put('Initializing...');
-
-    totalEntries = getVar('total-entries');
-    sectionID    = getVar('section-id');
-    uniqueAction = getVar('unique-action');
-    uniqueField  = getVar('unique-field');
-    importURL    = getVar('import-url');
-    fieldIDs     = getVar('field-ids');
-
-    put('Start import of ' + totalEntries + ' entries; section ID: ' + sectionID + '; unique action: ' + uniqueAction);
-
-    startTime = new Date();
-
-    if(totalEntries > 0)
-    {
-        importRows(0);
-    }	
+	$('input[name=import-step-3]').click(function(event){
+		event.preventDefault();
+		$(this).parents('form').submit();
+	});
+	$('input[name=import-step-3]').parents('form').submit(function(event){
+		event.preventDefault();
+		var a = [];
+		$('.fields.small').each(function(i){
+			a.push($(this).find('option:selected').val());
+			
+		});	
+		var ids = a.join();
+		var fields = {
+			section : $('input[name=section]').val(),
+			row : 1,
+			file : $('input[name=file]').val(),
+			uniqueaction : $('select[name=unique-action] option:selected').val(),
+			uniquefield : $('input[name=unique-field]:checked').val(),
+			fieldids : ids
+		}
+		//console.log(fields);
+		importRows(fields);
+	
+	});    
 });
 
 /**
  * Import 10 rows at the time
  * @param nr
  */
-function importRows(nr)
-{
-    currentRow = nr;
-    var fields = {};
-    fields.ajax = 1;
-    fields['unique-action'] = uniqueAction;
-    fields['unique-field'] = uniqueField;
-    fields['section-id'] = sectionID;
-    fields['row'] = currentRow;
-    fields['field-ids'] = fieldIDs;
-	var importURL = Symphony.Context.get('symphony')+ '/extension/importcsv/';
-	
+function importRows(fields)
+{    
+	var importURL = Symphony.Context.get('symphony')+ '/extension/importexport/import/';
     var request = jQuery.ajax({
         url: importURL,
         async: true,
@@ -55,27 +53,7 @@ function importRows(nr)
         cache: false,
         data: fields,
         success: function(data, textStatus){
-            c = data.substring(0, 4) == '[OK]' ? null : 'error';
-            till = ((currentRow + 1) * 10) <= totalEntries ? ((currentRow + 1) * 10) : totalEntries;
-            put('Import entries ' + ((currentRow * 10) + 1) + ' - ' + till  + ' : ' + data, c);
-            jQuery("div.progress div.bar").css({width: (((currentRow * 10) / totalEntries) * 100) + '%'});
-            elapsedTime = new Date();
-            ms = elapsedTime.getTime() - startTime.getTime();
-            e = time(ms);
-            p = ((currentRow * 10) / totalEntries);
-            eta = time((ms * (1/p)) - ms);
-
-            jQuery("div.progress div.bar").text('Elapsed time: ' + e + ' / Estimated time left: ' + eta);
-
-            // Check if the next entry should be imported:
-            if(((currentRow + 1) * 10) < totalEntries)
-            {
-                importRows(currentRow + 1);
-            } else {
-                jQuery("div.progress div.bar").css({width: '100%'}).text('Import completed!');
-                put('Import completed!');
-            }
-            jQuery("div.console").attr({ scrollTop: jQuery("div.console").attr("scrollHeight") });
+            console.log(data);
         }
     });
 	

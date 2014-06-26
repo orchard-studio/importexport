@@ -4,11 +4,13 @@ require_once(TOOLKIT . '/class.xsltpage.php');
 require_once(TOOLKIT . '/class.sectionmanager.php');
 require_once(TOOLKIT . '/class.fieldmanager.php');
 Class Helpers{
+
 	var $sectionID = null;
 	var $querycond = array();
 	var $data = array();
 	var $page = null;
 	var $limit = null;
+	
 	function fetchData($querycond,$sectionID,$page,$limit){
 		$em = new EntryManager($this);
 		$count = $em->fetchCount($sectionID,$querycond['where'],$querycond['joins']);
@@ -17,33 +19,63 @@ Class Helpers{
 		$all  = array($pageentries,$totalpages,$count);
 		return $all;
 	}
-	function getVals($data,$noquotes = false){
+	function getVals($data,$noquotes = false,$f = false){
 		$a = array();		
 		//$diff = array_values($diff);
 		
 		
 		
-			
 		foreach($data as $d => $dat){				
-				if($noquotes){					
-					if(array_key_exists('value',$dat) && $dat['value'] != null){
-						$a[] =  $dat['value'];
-					}elseif(array_key_exists('password',$dat) && $dat['password'] != null){
-						$a[] = $dat['password'];
-					}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
-						$a[] = $dat['relation_id'];
-					}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
-						$a[] = $dat['file'];
+				//var_dump($d);
+				if($f == $d){
+					if($noquotes){
+						
+						if(array_key_exists('value',$dat) && $dat['value'] != null){
+							$a[] =  $dat['value'];
+							continue;
+						}elseif(array_key_exists('password',$dat) && $dat['password'] != null){
+							$a[] = $dat['password'];
+							continue;
+						}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
+							$a[] = $dat['relation_id'];
+							continue;
+						}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
+							$a[] = $dat['file'];
+							continue;
+						}else{
+							$a[] =  'empty';							
+							continue;
+						}	
+						
+						
 					}else{
-						$a[] =  'empty';
-					}					
-				}else{
-					$a[] =  '"'.$dat['value'].'"';
+						$a[] =  '"'.$dat['value'].'"';
+						continue;
+					}
+				}elseif($noquotes == false){
+					if(array_key_exists('value',$dat) && $dat['value'] != null){
+							$a[] =  '"'.$dat['value'].'"';
+							continue;
+						}elseif(array_key_exists('password',$dat) && $dat['password'] != null){
+							$a[] = '"'.$dat['password'].'"';
+							continue;
+						}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
+							$a[] = '"'.$dat['relation_id'].'"';
+							continue;
+						}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
+							$a[] = '"'.$dat['file'].'"';
+							continue;
+						}else{
+							$a[] =  'empty';							
+							continue;
+						}
 				}
+				
 		}
-		
-		
 		return $a;
+		
+		
+		
 	}
 	
 	function array_insert(&$array,$element,$position=null) {
@@ -89,7 +121,7 @@ Class Helpers{
 	function __getField($fields,$noquotes = false){
 		$r = array();		
 		foreach($fields as $field){				
-			$id = $field->get('sortorder');
+			$id = $field->get('id');
 			$label = $field->get('label');
 			
 			if($noquotes){

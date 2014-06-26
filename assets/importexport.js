@@ -29,6 +29,7 @@ jQuery(function($){
 	});
 	
 });
+
 function callXport(fields){
 	var new_fields = fields;
 	xportcsv(new_fields);
@@ -36,6 +37,7 @@ function callXport(fields){
 				event.preventDefault();
 	});
 }
+
 function xportcsv(fields){
 		var newfields = fields;				
 		if(newfields == null){
@@ -51,8 +53,8 @@ function xportcsv(fields){
 			cache: false,
 			data: newfields,
 			success: function(data, textStatus){
-				
-				
+				all = data;
+				console.log(data);
 				if(data['progress'] == 'success'){					
 					if(data['page']){						
 						var percent = parseInt(data['page']) / parseInt(data['total-pages']) * 100;						
@@ -61,7 +63,7 @@ function xportcsv(fields){
 						$('.percent').html(Math.round(percent)+'% Completed');												
 					}
 					if(data){						
-						all = data;
+						
 						newfields = {
 							section : all['section'],					
 							page : ++all['page'],
@@ -73,7 +75,7 @@ function xportcsv(fields){
 				}else if(data['progress'] == 'headers'){					
 					var file = data['file'];
 					var type = data['type'];
-					console.log(data);
+					
 					var url = Symphony.Context.get('symphony')+ '/extension/importexport/download/?file='+file+'&type='+type;
 					window.location.replace(url)
 					

@@ -1,6 +1,8 @@
 <?php
 		
-				
+				ini_set('xdebug.var_display_max_depth', 5);
+ini_set('xdebug.var_display_max_children', 256);
+ini_set('xdebug.var_display_max_data', 1024);
 		require_once(BOOT . '/func.utilities.php');
 		require_once(EXTENSIONS . '/importexport/lib/php-export-data/php-export-data.class.php');
 		require_once(EXTENSIONS . '/importexport/lib/parsecsv-0.3.2/parsecsv.lib.php');		
@@ -21,20 +23,32 @@
 			}
 			private function __addheaders(){
 				$sectionID = $_REQUEST['headers'];
+				$type = $_REQUEST['type'];
 				$sm = new SectionManager($this);
 				$section = $sm->fetch($sectionID);			
 				
 				$fields = $section->fetchFields(); 
 				$fetch = new Helpers();
-				$fieldscols = $fetch->__getField($fields,true);
-				$entries = $fieldscols;
-				$type = $_REQUEST['type'];
+				if($type == 'json'){
+					$fieldscols = $fetch->__getField($fields,true);
+				}elseif($type == 'csv'){
+					$fieldscols = $fetch->__getField($fields);
+				}
+				
 				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
+				$fieldscols = implode(',',$fieldscols) . "\r\n";
+				$fieldscols .= file_get_contents($file);
+				
 				if($type != 'json'){
-					$handle = fopen($file,'r+');				
-					
-					fwrite($handle,$entries);
-					fclose($handle);				
+														
+					if($type == 'csv'){
+						file_put_contents($file,$fieldscols);
+					}else{
+						$handle = fopen($file,'r+');
+						fwrite($handle,$fieldscols);
+						fclose($handle);
+					}
+								
 				}
 				$this->_Result = array('progress'=>'headers','file'=>$file,'type'=>$type);	
 				
@@ -57,7 +71,8 @@
 					
 					$entries = array('entries' => $entrys);
 					
-					$this->__insert($entries,$sectionID,$type);				
+					$this->__insert($entries,$sectionID,$type);
+					
 					if($totalpages != $page){
 						
 						$next = array(
@@ -86,6 +101,7 @@
 				}elseif($type == 'csv'){
 					$entrys = $this->__getCsvValues($records);
 				}
+				
 				return $entrys;
 			}
 			
@@ -97,8 +113,9 @@
 				$fetch = new Helpers();
 					
 				foreach($array as $en => $ent){
-					$data = $ent->getData();
-					$all = $fetch->getVals($data);
+					$data = array_values((array)$ent);
+					$all = $fetch->getVals($data[1]);
+					
 					$ents[] = implode(',',$all);
 				}
 				$l = implode("\r\n",$ents);		
@@ -110,17 +127,23 @@
 				$ents = array();
 				$fetch = new Helpers();
 				$fields = $fetch->__getField($field,true);
-				
-				foreach($array as $en => $ent){
-					$data = $ent->getData();						
-					
+				$c = count($fields);
+				$json = array();
+				foreach($array as $en => $ent){		
+					$data = array_values((array)$ent);
 					$newarray = array_intersect_key($fields,$data);					
-					$ents = $fetch->getVals($data,true);
-								 // need to add in empty index positions
-					//$new[] = array_combine($newarray,$ents);
-				}								
-				$json = json_encode($new);				
-				return $json;
+					$fe = array_flip($fields);
+					$d = array();
+					foreach($fe as $fi => $f){
+						$ed = $fetch->getVals($data[1],true,$f);
+						$ents[$f] = 	(string) $ed[0];
+					}
+					$json[] = json_encode($ents);
+				}	
+				$j = '['.implode(',',$json).']';
+				
+				
+				return $j;
 			}
 			
 			private function __getXMLValues($array){		
@@ -136,18 +159,19 @@
 				$l = implode("\r\n",$ents);		
 				return $l;
 			}
-			
-			
 			public function getData(){
 				return $this->_data;
 			}
 			
 			private function __insert($array,$sectionID,$type){
-				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;				
-				foreach($array as $data => $dat){
-					$dat = $dat . "\r\n";
-					file_put_contents($file, $dat, FILE_APPEND | LOCK_EX);			
-				}
+				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
+				$handle = fopen($file,'a+');
+				
+				foreach($array as $data => $dat){					
+					
+					fwrite($handle, $dat);			
+				}				
+				fclose($handle);
 				unset($array);
 				unset($file);
 			}

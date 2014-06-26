@@ -26,7 +26,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
     {
         parent::build();        
 		parent::addStylesheetToHead(URL . '/extensions/importexport/assets/importexport.css');
-		
+		parent::addScriptToHead(URL . '/extensions/importexport/assets/import.js');
         parent::addScriptToHead(URL.'/extensions/importexport/assets/importexport.js', 70);
         
 		$this->setTitle('Symphony - Import / Export');
@@ -105,7 +105,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
      */
     private function __getCSV($csv)
     {
-		$fname = MANIFEST.'/tmp/data.json';
+		$fname = MANIFEST.'/tmp/data-1.json';
 		if($csv){			
 			if(file_exists($fname)){
 				unlink($fname);
@@ -122,7 +122,24 @@ class contentExtensionImportexportIndex extends AdministrationPage
 			return $container;
 		}		
     }
-	
+	private function JsonToCsv($json){
+			$fname = MANIFEST.'/tmp/data-2.json';
+			if($json){
+				if(file_exists($fname)){
+					unlink($fname);
+				}
+				
+				file_put_contents($fname,$json);				
+			}else{
+				$data = file_get_contents($fname);
+				$content = json_decode($data);
+				$container = $content;
+				
+			
+				return $container;
+			}
+			
+	}
 
     private function __importStep2Page()
     {
@@ -130,12 +147,18 @@ class contentExtensionImportexportIndex extends AdministrationPage
 		
         ///$cache = new Cacheable(Symphony::Database());
         // Get the nodes provided by this CSV file:
-		
-        $csv = new parseCSV();
-        $csv->auto($_FILES['csv-file']['tmp_name']);
-		
+		$csv = new parseCSV();
+		$csv->auto($_FILES['csv-file']['tmp_name']);
+        $filename = $_FILES['csv-file']['name'];
+		$tmpname = $_FILES['csv-file']['tmp_name'];
+		$ext = pathinfo($_FILES['csv-file']['name'], PATHINFO_EXTENSION);	
+		if($ext == 'json'){			
+			$this->JsonToCsv($csv->file_data);
+		}elseif($ext == 'csv'){			
+			$this->__getCSV($csv);
+		}
         ///$cache->write('importcsv', serialize($csv), 60 * 60 * 24); // Store for one day
-		$this->__getCSV($csv);
+		
 		
         $sectionID = $_POST['section'];
 
@@ -152,20 +175,52 @@ class contentExtensionImportexportIndex extends AdministrationPage
             $fieldsNode->appendChild(new XMLElement('field', $field->get('label'), array('id' => $field->get('id'))));
         }
         $xml->appendChild($fieldsNode);
-
+		
         $csvNode = new XMLElement('csv');
-        foreach ($csv->titles as $key)
-        {
-            $csvNode->appendChild(new XMLElement('key', $key));
-        }
-        $xml->appendChild($csvNode);					
+			
+		if($ext == 'json'){
+			$json = json_decode($csv->file_data);
+			$this->importJson($json,$csvNode);
+		}elseif($ext == 'csv'){
+		
+			foreach ($csv->titles as $key)
+			{			
+				$key = explode(',',$key);
+				foreach($key as $k => $ey){
+					$csvNode->appendChild(new XMLElement('key', $ey));
+				}
+			}
+		}
+		$fileNode = new XMLElement('file');
+		$fileNode->appendChild(new XMLElement('location',$filename));
+		$fileNode->appendChild(new XMLElement('tmp-location',$tmpname));
+        $xml->appendChild($csvNode);	
+		$xml->appendChild($fileNode);	
         // Generate the HTML:
         $xslt = new XSLTPage();
         $xslt->setXML($xml->generate());
-        $xslt->setXSL(EXTENSIONS . '/importcsv/content/step2.xsl', true);
+        $xslt->setXSL(EXTENSIONS . '/importexport/content/step2.xsl', true);
         $this->Form->setValue($xslt->generate());
     }
-
+	private function importJson($json,$csvNode){
+		
+		$fm = new FieldManager();
+		$t = array();
+		foreach($json as $js => $j){
+			$array = (array) $j;
+			
+			foreach($array as $arr => $ar){
+				$a = $fm->fetch($arr,$sectionID);
+				
+				$t[] = $a->get('label');
+			}
+			
+		}
+		$t = array_unique($t);			
+		foreach($t as $f => $field){
+			$csvNode->appendChild(new XMLElement('key', $field));
+		}
+	}
 
     private function __addVar($name, $value)
     {
@@ -182,29 +237,46 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $countUpdated = 0;
         $countIgnored = 0;
         $countOverwritten = 0;
-        $fm = new FieldManager($this);		
-        $csv = $this->__getCSV(false);
 		
+        $fm = new FieldManager($this);		
+		
+		
+		$ext = pathinfo($_POST['file'], PATHINFO_EXTENSION);	
+		if($ext == 'json'){			
+			$section = $fm->fetch(null,$sectionID); // contains field ids
+			$csv = $this->JsonToCsv(false);
+		}elseif($ext == 'csv'){			
+			$csv = $this->__getCSV(false);
+		}
+        
         // Load the information to start the importing process:
         $this->__addVar('section-id', $sectionID);
         $this->__addVar('unique-action', $uniqueAction);
         $this->__addVar('unique-field', $uniqueField);
         $this->__addVar('import-url', URL . '/symphony/extension/importexport/');
-
+		
         // Output the CSV-data:
         $csvData = $csv->data;
 		
-        $csvTitles = $csv->titles;
+        $csvTitles = (array) $csv->titles;
         $this->__addVar('total-entries', count($csvData));
-
-        // Store the associated Field-ID's:
-        $i = 0;
+		$i = 0;
         $ids = array();
-        foreach ($csvTitles as $title)
-        {
-            $ids[] = $_POST['field-' . $i];
-            $i++;
-        }
+		if($ext == 'json'){			
+			foreach ($section as $id)
+			{
+				$label = $id->get('label');
+				$ids[] = $label;			
+			}			
+		}elseif($ext == 'csv'){
+			foreach ($csvTitles as $title){				
+				$ids[] = $_POST['field-' . $i];		
+				$i++;				
+			}
+		}
+        // Store the associated Field-ID's:
+       
+        
         $this->__addVar('field-ids', implode(',', $ids));
 
         $this->addScriptToHead(URL . '/extensions/importexport/assets/import.js');
@@ -239,138 +311,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
      * This function imports 10 rows of the CSV data
      * @return void
      */
-    private function __ajaxImportRows()
-    {
-        $messageSuffix = '';
-        $updated = array();
-        $ignored = array();
-
-        $csv = $this->__getCSV(false);
-		
-        if ($csv != false) {
-            // Load the drivers:
-            $drivers = $this->getDrivers();
-
-            // Default parameters:
-            $currentRow = intval($_POST['row']);
-            $sectionID = $_POST['section-id'];
-            $uniqueAction = $_POST['unique-action'];
-            $uniqueField = $_POST['unique-field'];
-            $fieldIDs = explode(',', $_POST['field-ids']);
-            $entryID = null;
-
-            // Load the fieldmanager:
-            $fm = new FieldManager($this);
-
-            // Load the entrymanager:
-            $em = new EntryManager($this);
-
-            // Load the CSV data of the specific rows:
-            $csvTitles = $csv->titles;
-            $csvData = $csv->data;
-            for ($i = $currentRow * 10; $i < ($currentRow + 1) * 10; $i++)
-            {
-                // Start by creating a new entry:
-                $entry = new Entry($this);
-                $entry->set('section_id', $sectionID);
-				
-                // Ignore this entry?
-                $ignore = false;
-
-                // Import this row:
-                $row = $csvData[$i];
-				
-                if ($row != false) {
-
-                    // If a unique field is used, make sure there is a field selected for this:
-                    if ($uniqueField != 'no' && $fieldIDs[$uniqueField] == 0) {
-                        die(__('[ERROR: No field id sent for: "' . $csvTitles[$uniqueField] . '"]'));
-                    }
-
-                    // Unique action:
-                    if ($uniqueField != 'no') {
-                        // Check if there is an entry with this value:
-                        $field = $fm->fetch($fieldIDs[$uniqueField]);
-                        $type = $field->get('type');
-                        if (isset($drivers[$type])) {
-                            $drivers[$type]->setField($field);
-							
-                            $entryID = $drivers[$type]->scanDatabase($row[$csvTitles[$uniqueField]]);
-                        } else {
-                            $drivers['default']->setField($field);
-							
-                            $entryID = $drivers['default']->scanDatabase($row[$csvTitles[$uniqueField]]);
-                        }
-
-                        if ($entryID != false) {
-                            // Update? Ignore? Add new?
-                            switch ($uniqueAction)
-                            {
-                                case 'update' :
-                                    {
-                                    $a = $em->fetch($entryID);
-                                    $entry = $a[0];
-                                    $updated[] = $entryID;
-                                    break;
-                                    }
-                                case 'ignore' :
-                                    {
-                                    $ignored[] = $entryID;
-                                    $ignore = true;
-                                    break;
-                                    }
-                            }
-                        }
-                    }
-				
-                    if (!$ignore) {
-                        // Do the actual importing:
-                        $j = 0;
-                        foreach ($row as $value)
-                        {
-                            // When no unique field is found, treat it like a new entry
-                            // Otherwise, stop processing to safe CPU power.
-                            $fieldID = intval($fieldIDs[$j]);
-                            // If $fieldID = 0, then `Don't use` is selected as field. So don't use it! :-P
-                            if ($fieldID != 0) {
-                                $field = $fm->fetch($fieldID);
-                                // Get the corresponding field-type:
-                                $type = $field->get('type');
-                                if (isset($drivers[$type])) {
-                                    $drivers[$type]->setField($field);
-                                    $data = $drivers[$type]->import($value, $entryID);
-                                } else {
-                                    $drivers['default']->setField($field);
-                                    $data = $drivers['default']->import($value, $entryID);
-                                }
-                                // Set the data:
-							
-                                if ($data != false) {
-                                    $entry->setData($fieldID, $data);
-                                }
-                            }
-													
-                            $j++;
-                        }
-						
-                        // Store the entry:
-                        $entry->commit();
-                    }
-                }
-            }
-        } else {
-            die(__('[ERROR: Data not found!]'));
-        }
-		
-        if (count($updated) > 0) {
-            $messageSuffix .= ' ' . __('(updated: ') . implode(', ', $updated) . ')';
-        }
-        if (count($ignored) > 0) {
-            $messageSuffix .= ' ' . __('(ignored: ') . implode(', ', $updated) . ')';
-        }
-
-        die('[OK]' . $messageSuffix);
-    }
+    
 	
 	
 	
