@@ -154,8 +154,10 @@ class contentExtensionImportexportIndex extends AdministrationPage
 		$ext = pathinfo($_FILES['csv-file']['name'], PATHINFO_EXTENSION);	
 		if($ext == 'json'){			
 			$this->JsonToCsv($csv->file_data);
+			$linecount = count($this->JsonToCsv(false));			
 		}elseif($ext == 'csv'){			
 			$this->__getCSV($csv);
+			$linecount = count(file($_FILES['csv-file']['tmp_name']));
 		}
         ///$cache->write('importcsv', serialize($csv), 60 * 60 * 24); // Store for one day
 		
@@ -177,12 +179,13 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $xml->appendChild($fieldsNode);
 		
         $csvNode = new XMLElement('csv');
-			
+		
 		if($ext == 'json'){
 			$json = json_decode($csv->file_data);
-			$this->importJson($json,$csvNode);
+			$this->importJson($json,$csvNode,$sectionID);
 		}elseif($ext == 'csv'){
-		
+			$count = new XMLElement('count',$linecount);
+			
 			foreach ($csv->titles as $key)
 			{			
 				$key = explode(',',$key);
@@ -190,6 +193,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
 					$csvNode->appendChild(new XMLElement('key', $ey));
 				}
 			}
+			$xml->appendChild($count);
 		}
 		$fileNode = new XMLElement('file');
 		$fileNode->appendChild(new XMLElement('location',$filename));
@@ -202,21 +206,25 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $xslt->setXSL(EXTENSIONS . '/importexport/content/step2.xsl', true);
         $this->Form->setValue($xslt->generate());
     }
-	private function importJson($json,$csvNode){
+	private function importJson($json,$csvNode,$sectionID){
 		
-		$fm = new FieldManager();
+		//$fm = new FieldManager();
 		$t = array();
 		foreach($json as $js => $j){
 			$array = (array) $j;
 			
 			foreach($array as $arr => $ar){
-				$a = $fm->fetch($arr,$sectionID);
-				
-				$t[] = $a->get('label');
+				//$a = $fm->fetch(null,$sectionID);
+				//var_dump($a);				
+				//var_dump($arr);				
+				//var_dump($sectionID);				
+				$t[] = $arr;//$a->get('label');
 			}
 			
+			
 		}
-		$t = array_unique($t);			
+		$t = array_unique($t);
+		
 		foreach($t as $f => $field){
 			$csvNode->appendChild(new XMLElement('key', $field));
 		}
@@ -245,8 +253,10 @@ class contentExtensionImportexportIndex extends AdministrationPage
 		if($ext == 'json'){			
 			$section = $fm->fetch(null,$sectionID); // contains field ids
 			$csv = $this->JsonToCsv(false);
+			
 		}elseif($ext == 'csv'){			
 			$csv = $this->__getCSV(false);
+			
 		}
         
         // Load the information to start the importing process:

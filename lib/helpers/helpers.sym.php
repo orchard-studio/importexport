@@ -19,7 +19,7 @@ Class Helpers{
 		$all  = array($pageentries,$totalpages,$count);
 		return $all;
 	}
-	function getVals($data,$noquotes = false,$f = false){
+	function getVals($data,$noquotes = false,$f = false,$fi = false){
 		$a = array();		
 		//$diff = array_values($diff);
 		
@@ -49,26 +49,45 @@ Class Helpers{
 						
 						
 					}else{
-						$a[] =  '"'.$dat['value'].'"';
+						$a[$fi] =  '"'.$dat['value'].'"';
 						continue;
 					}
-				}elseif($noquotes == false){
-					if(array_key_exists('value',$dat) && $dat['value'] != null){
-							$a[] =  '"'.$dat['value'].'"';
+				}else{
+					if($noquotes == false){
+							if(array_key_exists('value',$dat) && $dat['value'] != null){
+								$a[] =  '"'.$dat['value'].'"';
+								continue;
+							}elseif(array_key_exists('password',$dat) && $dat['password'] != null){
+								$a[] = '"'.$dat['password'].'"';
+								continue;
+							}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
+								$a[] = '"'.$dat['relation_id'].'"';
+								continue;
+							}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
+								$a[] = '"'.$dat['file'].'"';
+								continue;
+							}else{
+								$a[] =  'empty';							
+								continue;
+							}
+					}else{
+						if(array_key_exists('value',$dat) && $dat['value'] != null){
+							$a[] =  $dat['value'];
 							continue;
 						}elseif(array_key_exists('password',$dat) && $dat['password'] != null){
-							$a[] = '"'.$dat['password'].'"';
+							$a[] = $dat['password'];
 							continue;
 						}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
-							$a[] = '"'.$dat['relation_id'].'"';
+							$a[] = $dat['relation_id'];
 							continue;
 						}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
-							$a[] = '"'.$dat['file'].'"';
+							$a[] = $dat['file'];
 							continue;
 						}else{
 							$a[] =  'empty';							
 							continue;
-						}
+						}	
+					}
 				}
 				
 		}

@@ -25,13 +25,22 @@ jQuery(function($){
 			
 		});	
 		var ids = a.join();
+		var loader = $('<div class="loader"><p>Exporting</p></div>');
+		var span = $('<span></span>');
+		var container = $('<div class="container"></div>');		
+		loader.append(span);
+		container.append(loader);
+		$('#wrapper').append(container);
+		var span1 = $('<span class="percent"></span>');
+		$('.loader p').append(span1);
 		var fields = {
 			section : $('input[name=section]').val(),
-			row : 1,
+			row : 0,
 			file : $('input[name=file]').val(),
 			uniqueaction : $('select[name=unique-action] option:selected').val(),
 			uniquefield : $('input[name=unique-field]:checked').val(),
-			fieldids : ids
+			fieldids : ids,
+			totalrows : $('input[name=count]').val()
 		}
 		//console.log(fields);
 		importRows(fields);
@@ -45,6 +54,7 @@ jQuery(function($){
  */
 function importRows(fields)
 {    
+	console.log(fields);
 	var importURL = Symphony.Context.get('symphony')+ '/extension/importexport/import/';
     var request = jQuery.ajax({
         url: importURL,
@@ -52,8 +62,36 @@ function importRows(fields)
         type: 'post',
         cache: false,
         data: fields,
-        success: function(data, textStatus){
-            console.log(data);
+        success: function(data, textStatus){            
+			var all = data;
+			if(data.progress == 'success'){		
+				if(data.row){						
+						var percent = parseInt(data.row) / parseInt(data.count) * 100;						
+						$('.container').show();
+						$('.loader span:not(.percent)').animate({    width: Math.round(percent)+'%'	});
+						$('.percent').html(Math.round(percent)+'% Completed');												
+					}
+					if(data){						
+						
+						newfields = {
+							section : all.section,					
+							row : ++all.row,							
+							file : all.file,
+							uniqueaction : all.uniqueaction,
+							progress : all.progress,
+							fieldids : all.fieldids,
+							uniquefield : all.uniquefield,
+							count : all.count
+						}
+						console.log(newfields);
+						importRows(newfields);
+					}
+					
+					
+			}else{
+				var url = Symphony.Context.get('symphony')+ '/blueprints/sections/';
+				window.location.replace(url);
+			}
         }
     });
 	

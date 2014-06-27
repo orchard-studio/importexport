@@ -1,8 +1,8 @@
 <?php
 		
-				ini_set('xdebug.var_display_max_depth', 5);
-ini_set('xdebug.var_display_max_children', 256);
-ini_set('xdebug.var_display_max_data', 1024);
+		ini_set('xdebug.var_display_max_depth', 5);
+		ini_set('xdebug.var_display_max_children', 256);
+		ini_set('xdebug.var_display_max_data', 1024);
 		require_once(BOOT . '/func.utilities.php');
 		require_once(EXTENSIONS . '/importexport/lib/php-export-data/php-export-data.class.php');
 		require_once(EXTENSIONS . '/importexport/lib/parsecsv-0.3.2/parsecsv.lib.php');		
@@ -13,68 +13,12 @@ ini_set('xdebug.var_display_max_data', 1024);
 			
 			
 			 public function view()
-			{	
-				$this->__ajaxImportRows();
+			{
+				
+					$this->__ajaxImportRows();
 			
 			}
-			private function __importStep3Page()
-			{
-				// Store the entries:
-				$sectionID = $_POST['section'];
-				$uniqueAction = $_POST['uniqueaction'];
-				$uniqueField = $_POST['uniquefield'];
-				$countNew = 0;
-				$countUpdated = 0;
-				$countIgnored = 0;
-				$countOverwritten = 0;
-				
-				$fm = new FieldManager($this);		
-				
-				
-				$ext = pathinfo($_POST['file'], PATHINFO_EXTENSION);	
-				if($ext == 'json'){			
-					$section = $fm->fetch(null,$sectionID); // contains field ids
-					$csv = $this->JsonToCsv(false);
-				}elseif($ext == 'csv'){			
-					$csv = $this->__getCSV(false);
-				}
-				
-				// Load the information to start the importing process:
-				$this->__addVar('section-id', $sectionID);
-				$this->__addVar('unique-action', $uniqueAction);
-				$this->__addVar('unique-field', $uniqueField);
-				$this->__addVar('import-url', URL . '/symphony/extension/importexport/');
-				
-				// Output the CSV-data:
-				$csvData = $csv->data;
-				
-				$csvTitles = (array) $csv->titles;
-				$this->__addVar('total-entries', count($csvData));
-				$i = 0;
-				$ids = array();
-				if($ext == 'json'){			
-					foreach ($section as $id)
-					{
-						$label = $id->get('label');
-						$ids[] = $label;			
-					}			
-				}elseif($ext == 'csv'){
-					foreach ($csvTitles as $title){				
-						$ids[] = $_POST['field-' . $i];		
-						$i++;				
-					}
-				}
-				// Store the associated Field-ID's:
-			   
-				
-				$this->__addVar('field-ids', implode(',', $ids));
-
-				$this->addScriptToHead(URL . '/extensions/importexport/assets/import.js');
-				$this->Form->appendChild(new XMLElement('h2', __('Import in progress...')));
-				$this->Form->appendChild(new XMLElement('div', '<div class="bar"></div>', array('class' => 'progress')));
-				$this->Form->appendChild(new XMLElement('div', null, array('class' => 'console')));
-			}
-
+			
 			private function getDrivers()
 			{
 				$classes = glob(EXTENSIONS . '/importexport/drivers/*.php');
@@ -138,6 +82,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 		
 				$fm = new FieldManager();
 				$t = array();
+				
 				foreach($json as $js => $j){
 					$array = (array) $j;
 					
@@ -159,6 +104,19 @@ ini_set('xdebug.var_display_max_data', 1024);
 				$this->Form->appendChild(new XMLElement('var', $value, array('class' => $name)));
 			}		
 			
+			private function returnLast2Levels($item){
+				
+				//foreach($item as $i => $obj){
+					if(is_object($item)){
+						
+						$items = array_values((array) $item);
+					}else{
+						$items = $item;
+					}	
+				
+				return $items;
+			}
+			
 			private function __ajaxImportRows()
 			{
 				$fm = new FieldManager($this);		
@@ -171,6 +129,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$csv = $this->__getCSV(false);
 				}
 				
+				$msg = null;
 				
 				if ($csv != false) {
 					// Load the drivers:
@@ -183,7 +142,23 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$uniqueField = $_REQUEST['uniquefield'];
 					$fieldIDs = explode(',', $_REQUEST['fieldids']);
 					$entryID = null;
-
+					
+					
+					if($_REQUEST['row'] != (int) $_REQUEST['count']){
+						$nextFields = array(
+							'row'=>$_REQUEST['row'],
+							'section'=> $_REQUEST['section'],
+							'uniqueaction'=>$_REQUEST['uniqueaction'],
+							'uniquefield'=>$_REQUEST['uniquefield'],
+							'fieldids'=>$_REQUEST['fieldids'],
+							'progress'=>'success',
+							'file' => $_REQUEST['file'],
+							'count' => (int)$_REQUEST['count']
+						);
+					
+					}else{
+						$nextFields = array('progress'=>'completed');
+					}
 					// Load the fieldmanager:
 					
 					// Load the entrymanager:
@@ -193,7 +168,8 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$csvTitles = $csv->titles;
 					$csvData = $csv->data;
 					for ($i = $currentRow * 10; $i < ($currentRow + 1) * 10; $i++)
-					{
+					{	
+						
 						// Start by creating a new entry:
 						$entry = new Entry($this);
 						$entry->set('section_id', $sectionID);
@@ -203,12 +179,34 @@ ini_set('xdebug.var_display_max_data', 1024);
 						
 						// Import this row:
 						if($ext == 'json'){
-							$row = array_values((array) $csv[$i]);													
+							$row = array_values((array) $csv);		
+							$x = array();
+							foreach($row as $r => $ro){
+								$x[] = $this->returnLast2Levels($ro);
+							}
+							unset($row);
+							$row = $x[$i];
+							
+							if($row == null){
+								$nextFields['status'] = 'completed';
+							}
 						}
 						else{
-							$row = $csvData[$i];
-						}
+							$row = array_values((array) $csvData);
+							//unset($row[0]);
+							$x = array();
+							foreach($row as $r => $ro){
+								$x[] = $this->returnLast2Levels($ro);
+							}
+							unset($row);
 							
+							$row = $x[$i];
+							//$row = $values;
+							if($row == null){
+								$nextFields['status'] = 'completed';
+							}
+						}
+						
 						if ($row != false) {
 							
 							// If a unique field is used, make sure there is a field selected for this:
@@ -256,41 +254,57 @@ ini_set('xdebug.var_display_max_data', 1024);
 							if (!$ignore) {
 								// Do the actual importing:
 								$j = 0;
-								foreach ($row as $value)
+								
+								foreach ($row as $val => $value)
 								{
-									// When no unique field is found, treat it like a new entry
-									// Otherwise, stop processing to safe CPU power.
-									$fieldID = intval($fieldIDs[$j]);
-									// If $fieldID = 0, then `Don't use` is selected as field. So don't use it! :-P
-									if ($fieldID != 0) {
-										$field = $fm->fetch($fieldID);
-										// Get the corresponding field-type:
-										$type = $field->get('type');
-										if (isset($drivers[$type])) {
-											$drivers[$type]->setField($field);
-											$data = $drivers[$type]->import($value, $entryID);
-										} else {
-											$drivers['default']->setField($field);
-											$data = $drivers['default']->import($value, $entryID);
-										}
-										// Set the data:
+									
 										
-										if ($data != false) {
-											$entry->setData($fieldID, $data);
+										// When no unique field is found, treat it like a new entry
+										// Otherwise, stop processing to safe CPU power.
+										$fieldID = intval($fieldIDs[$j]);
+										
+										// If $fieldID = 0, then `Don't use` is selected as field. So don't use it! :-P
+										if ($fieldID != 0) {
+											$field = $fm->fetch($fieldID);
+											
+											// Get the corresponding field-type:
+											$type = $field->get('type');
+											
+											if (isset($drivers[$type])) {
+												$drivers[$type]->setField($field);
+												$data = $drivers[$type]->import($value, $entryID);
+											} else {
+												$drivers['default']->setField($field);
+												
+																							
+												$data = $drivers['default']->import($value, $entryID);
+											}
+											// Set the data:
+											$msg->data = $data;
+											$msg->fields = $fieldID;
+											if ($data != false) {
+												$entry->setData($fieldID, $data);
+											}
+											
+										
 										}
-										//var_dump($data);
-										//var_dump($fieldID);
-									}
-															
+										//var_dump($data);	
+										//var_dump($fieldID);	
+											
+									
 									$j++;
 								}
 								
-								// Store the entry:
 								$entry->commit();
+								// Store the entry:
+								
 							}
+							//die;
 						}
-					}	
-//die;					
+					}			
+					
+					
+					
 				} else {
 					die(__('[ERROR: Data not found!]'));
 				}
@@ -301,8 +315,8 @@ ini_set('xdebug.var_display_max_data', 1024);
 				if (count($ignored) > 0) {
 					$messageSuffix .= ' ' . __('(ignored: ') . implode(', ', $updated) . ')';
 				}
-
-				die('[OK]' . $messageSuffix);
+				
+				$this->_Result = $nextFields;
 			}
 		}
 		

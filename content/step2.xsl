@@ -72,6 +72,7 @@
                 unexpected results of this extension. This software is licenced under the <a href="http://en.wikipedia.org/wiki/MIT_License" target="_blank">MIT Licence</a>.
 
             </p>
+			<input name="count" type="hidden" value="{data/count}"/>
 			<input name="file" type="hidden" value="{data/file/location}"/>
             <input name="import-step-3" type="submit" value="Next Step"/>
         </fieldset>

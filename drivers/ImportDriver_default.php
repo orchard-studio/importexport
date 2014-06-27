@@ -82,6 +82,7 @@ class ImportDriver_default {
     public function scanDatabase($value)
     {
         $result = Symphony::Database()->fetch('DESCRIBE `tbl_entries_data_' . $this->field->get('id') . '`;');
+		
         foreach ($result as $tableColumn)
         {
             if ($tableColumn['Field'] == 'value') {
