@@ -119,7 +119,9 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$all = $fetch->getVals($data[1]);
 					
 					$ents[] = implode(',',$all);
+					
 				}
+				
 				$l = "\r\n".implode("\r\n",$ents);		
 				return $l;
 			}

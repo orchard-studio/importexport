@@ -37,7 +37,11 @@ Class Helpers{
 							$a[] = $dat['password'];
 							continue;
 						}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
-							$a[] = $dat['relation_id'];
+							if(is_array($dat['relation_id'])){
+								$a[] = '"'.implode(',',$dat['relation_id']).'"';
+							}else{
+								$a[] = '"'.$dat['relation_id'].'"';
+							}
 							continue;
 						}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
 							$a[] = $dat['file'];
@@ -61,7 +65,12 @@ Class Helpers{
 								$a[] = '"'.$dat['password'].'"';
 								continue;
 							}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
-								$a[] = '"'.$dat['relation_id'].'"';
+								
+								if(is_array($dat['relation_id'])){
+									$a[] = '"'.implode(',',$dat['relation_id']).'"';
+								}else{
+									$a[] = '"'.$dat['relation_id'].'"';
+								}
 								continue;
 							}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
 								$a[] = '"'.$dat['file'].'"';
@@ -78,7 +87,11 @@ Class Helpers{
 							$a[] = $dat['password'];
 							continue;
 						}elseif(array_key_exists('relation_id',$dat) && $dat['relation_id'] != null){
-							$a[] = $dat['relation_id'];
+							if(is_array($dat['relation_id'])){
+								$a[] = '"'.implode(',',$dat['relation_id']).'"';
+							}else{
+								$a[] = '"'.$dat['relation_id'].'"';
+							}
 							continue;
 						}elseif(array_key_exists('file',$dat) && $dat['file'] != null){
 							$a[] = $dat['file'];
