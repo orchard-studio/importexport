@@ -1,4 +1,4 @@
-# Import / export CSV #
+# Importer / exporter #
 
 Author: Twisted Interactive  
 Website: http://www.twisted.nl
