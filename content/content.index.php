@@ -181,7 +181,8 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $csvNode = new XMLElement('csv');
 		
 		if($ext == 'json'){
-			$json = json_decode($csv->file_data);
+			$json = $csv->file_data;
+			var_dump(json_decode($json,true));
 			$this->importJson($json,$csvNode,$sectionID);
 		}elseif($ext == 'csv'){
 			$count = new XMLElement('count',$linecount);
@@ -210,6 +211,8 @@ class contentExtensionImportexportIndex extends AdministrationPage
 		
 		//$fm = new FieldManager();
 		$t = array();
+		var_dump($json);
+		die;
 		foreach($json as $js => $j){
 			$array = (array) $j;
 			

@@ -78,7 +78,9 @@ function xportcsv(fields){
 					
 					var url = Symphony.Context.get('symphony')+ '/extension/importexport/download/?file='+file+'&type='+type;
 					window.location.replace(url)
-					
+				}else if(data['progress'] == 'noentries'){
+					alert('There are no Entries in this section');
+								
 				}else{					
 					all = data;					
 					$('.container').remove();

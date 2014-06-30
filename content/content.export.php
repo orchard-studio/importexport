@@ -8,6 +8,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 		require_once(EXTENSIONS . '/importexport/lib/parsecsv-0.3.2/parsecsv.lib.php');		
 		require_once(TOOLKIT . '/class.jsonpage.php');		
 		require_once(EXTENSIONS . '/importexport/lib/helpers/helpers.sym.php');
+		require_once(EXTENSIONS . '/importexport/lib/helpers/arraytoxml.php');
 		class contentExtensionImportexportExport extends JSONPage{
 			
 			
@@ -46,11 +47,19 @@ ini_set('xdebug.var_display_max_data', 1024);
 					if($type == 'csv'){
 						file_put_contents($file,$fieldscols);
 					}elseif($type == 'xml'){
-						$handle = fopen($file,'r+');
-						fwrite($handle,$fieldscols);
+						$content = new ArrayToXml();
+						$c = $content->buildXml($file);//'['.file_get_contents($file).']';
+						$handle = fopen($file,'w');
+						fwrite($handle,$c);
 						fclose($handle);
 					}
 								
+				}else{
+					$content = '['.file_get_contents($file).']';
+					$handle = fopen($file,'w');
+					fwrite($handle,$content);
+					fclose($handle);
+					
 				}
 				$this->_Result = array('progress'=>'headers','file'=>$file,'type'=>$type);	
 				
@@ -67,13 +76,14 @@ ini_set('xdebug.var_display_max_data', 1024);
 					
 					$data = $fetch->fetchData($querycond,$sectionID,$page,$limit);
 					$records = $data[0]['records'];
-					$totalpages = $data[0]['total-pages'];
-					
+					$totalpages = $data[0]['total-pages'];					
 					$entrys = $this->checkType($records);
 					
 					$entries = array('entries' => $entrys);
 					
-					$this->__insert($entries,$sectionID,$type);
+					if($entries != ''){
+						$this->__insert($entries,$sectionID,$type);	
+					}
 					
 					if($totalpages != $page){
 						
@@ -86,6 +96,8 @@ ini_set('xdebug.var_display_max_data', 1024);
 									'type' => $type
 						);
 						$this->_Result = $next;
+					}elseif($entries['entries'] == ''){
+						$this->_Result = array('progress'=>'noentries');			
 					}else{						
 						$this->_Result = array('progress'=>'completed');									
 					}
@@ -130,6 +142,51 @@ ini_set('xdebug.var_display_max_data', 1024);
 				$fetch = new Helpers();
 				$fields = $fetch->__getField($field,true);
 				$c = count($fields);
+				$count = count($array);
+				$json = array();				
+				$a = array();
+				//var_dump($array);
+				foreach($array as $en => $ent){						
+					$data = array_values((array)$ent);										
+					$fields = array_values($fields);
+					$data = array_values($data[1]);
+					foreach($fields as $fi => $f){
+							if($data[$fi] != null){
+								if(array_key_exists('value',$data[$fi]) && $data[$fi]['value'] != null){
+									$a[$f] =  $data[$fi]['value'];
+									
+								}elseif(array_key_exists('password',$data[$fi]) && $data[$fi]['password'] != null){
+									$a[$f] = $data[$fi]['password'];
+									
+								}elseif(array_key_exists('relation_id',$data[$fi]) && $data[$fi]['relation_id'] != null){
+									if(is_array($data[$fi]['relation_id'])){
+										$a[$f] = implode(',', $data[$fi]['relation_id']);
+									}else{
+										$a[$f] = $data[$fi]['relation_id'];									
+									}
+								}elseif(array_key_exists('file',$data[$fi]) && $data[$fi]['file'] != null){
+									$a[$f] = $data[$fi]['file'];
+									
+								}else{
+									$a[$f] =  'empty';							
+									
+								}	
+								
+							}							
+					}	
+					
+					$json[] = json_encode($a);					
+				}								
+				//die;
+				
+				$j = implode(',',$json);				
+				return $j;
+			}
+			
+			private function __getXMLValues($array,$field,$section){		
+				$fetch = new Helpers();
+				$fields = $fetch->__getField($field,true);
+				$c = count($fields);
 				$json = array();				
 				$a = array();
 				foreach($array as $en => $ent){						
@@ -157,36 +214,16 @@ ini_set('xdebug.var_display_max_data', 1024);
 								
 							}							
 					}				
-					$json[] = json_encode($a);					
-				}								
-				$j = '['.implode(',',$json).']';				
+					$xml = new ArrayToXml();
+					$json[] = $xml->generate_valid_xml_from_array($a, 'entry');	
+					
+				}	
+				
+				
+				
+				$j = implode($json);	
+				
 				return $j;
-			}
-			
-			private function __getXMLValues($array,$field,$section){		
-				$all = array();
-				$ents = array();
-				$fetch = new Helpers();
-				$fields = $fetch->__getField($field,true);
-				foreach($array as $en => $ent){
-					$data = array_values((array)$ent);
-					$newarray = array_intersect_key($fields,$data);	
-					$fe = array_flip($fields);
-					$d = array();					
-					foreach($fe as $fi => $f){
-						
-						$ed = $fetch->getVals($data[1],true,$f,$fi);
-						
-						$ents[$fi] = 	(string) $ed[0];
-					}
-					
-					var_dump($ents);
-					
-					//$ents[] = implode(',',$all);
-				}
-				die;
-				$l = implode("\r\n",$ents);		
-				return $l;
 			}
 			public function getData(){
 				return $this->_data;
@@ -195,10 +232,15 @@ ini_set('xdebug.var_display_max_data', 1024);
 			private function __insert($array,$sectionID,$type){
 				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
 				$handle = fopen($file,'a+');
-				
+				$c = count($array);
+				var_dump($c);
+				die;
 				foreach($array as $data => $dat){					
-					
-					fwrite($handle, $dat);			
+					if($type == 'json'){
+						fwrite($handle, $dat.',');			
+					}else{
+						fwrite($handle, $dat);			
+					}
 				}				
 				fclose($handle);
 				unset($array);

@@ -120,7 +120,7 @@
 			private function __ajaxImportRows()
 			{
 				$fm = new FieldManager($this);		
-				
+				$em = new EntryManager($this);	
 				$ext = pathinfo($_REQUEST['file'], PATHINFO_EXTENSION);	
 				if($ext == 'json'){			
 					$section = $fm->fetch(null,$sectionID); // contains field ids
@@ -141,35 +141,41 @@
 					$uniqueAction = $_REQUEST['uniqueaction'];
 					$uniqueField = $_REQUEST['uniquefield'];
 					$fieldIDs = explode(',', $_REQUEST['fieldids']);
+					
 					$entryID = null;
-					
-					
-					if($_REQUEST['row'] != (int) $_REQUEST['count']){
+					$limit = $_REQUEST['limit'];
+					$currentamount = $_REQUEST['currentamount'];
+					$count = (int) count($csv->data);
+					//$count = (int) $em->fetchCount($sectionID);
+					$co = intval($currentRow * 50);
+					if($currentamount <= $count){
 						$nextFields = array(
-							'row'=>$_REQUEST['row'],
+							'row'=> $currentRow,
 							'section'=> $_REQUEST['section'],
 							'uniqueaction'=>$_REQUEST['uniqueaction'],
 							'uniquefield'=>$_REQUEST['uniquefield'],
 							'fieldids'=>$_REQUEST['fieldids'],
 							'progress'=>'success',
 							'file' => $_REQUEST['file'],
-							'count' => (int)$_REQUEST['count']
+							'count' => $count,
+							'currentamount' => $currentamount
 						);
-					
+						
 					}else{
 						$nextFields = array('progress'=>'completed');
 					}
-					// Load the fieldmanager:
 					
-					// Load the entrymanager:
-					$em = new EntryManager($this);
-
+					
 					// Load the CSV data of the specific rows:
 					$csvTitles = $csv->titles;
-					$csvData = $csv->data;
-					for ($i = $currentRow * 10; $i < ($currentRow + 1) * 10; $i++)
+					$csvData = $csv->data; 
+					///$currentamount = $_REQUEST['count'];
+					//$newamount = $currentRow + 50;
+					$a = 0;
+					//while($currentamount < $newamount; $currentamount++)
+					for ($i = $currentRow * 50; $i < ($currentRow + 1) * 50; $i++)
 					{	
-						
+						$a = $i;
 						// Start by creating a new entry:
 						$entry = new Entry($this);
 						$entry->set('section_id', $sectionID);
@@ -188,7 +194,7 @@
 							$row = $x[$i];
 							
 							if($row == null){
-								$nextFields['status'] = 'completed';
+								$nextFields['progress'] = 'completed';
 							}
 						}
 						else{
@@ -302,12 +308,12 @@
 							//die;
 						}
 					}			
-					
-					
+					$nextFields['currentamount'] = $a +1;
 					
 				} else {
 					die(__('[ERROR: Data not found!]'));
 				}
+				
 				
 				if (count($updated) > 0) {
 					$messageSuffix .= ' ' . __('(updated: ') . implode(', ', $updated) . ')';

@@ -40,7 +40,7 @@ jQuery(function($){
 			uniqueaction : $('select[name=unique-action] option:selected').val(),
 			uniquefield : $('input[name=unique-field]:checked').val(),
 			fieldids : ids,
-			totalrows : $('input[name=count]').val()
+			count : $('input[name=count]').val()
 		}
 		//console.log(fields);
 		importRows(fields);
@@ -53,8 +53,7 @@ jQuery(function($){
  * @param nr
  */
 function importRows(fields)
-{    
-	console.log(fields);
+{    	
 	var importURL = Symphony.Context.get('symphony')+ '/extension/importexport/import/';
     var request = jQuery.ajax({
         url: importURL,
@@ -64,12 +63,15 @@ function importRows(fields)
         data: fields,
         success: function(data, textStatus){            
 			var all = data;
+			//console.log(data);
 			if(data.progress == 'success'){		
 				if(data.row){						
-						var percent = parseInt(data.row) / parseInt(data.count) * 100;						
+						var percent = parseInt(data.currentamount) / parseInt(data.count) * 100;						
 						$('.container').show();
-						$('.loader span:not(.percent)').animate({    width: Math.round(percent)+'%'	});
-						$('.percent').html(Math.round(percent)+'% Completed');												
+						if(percent <= 100){
+							$('.loader span:not(.percent)').animate({    width: Math.round(percent)+'%'	});						
+							$('.percent').html(Math.round(percent)+'% Completed');												
+						}
 					}
 					if(data){						
 						
@@ -81,14 +83,16 @@ function importRows(fields)
 							progress : all.progress,
 							fieldids : all.fieldids,
 							uniquefield : all.uniquefield,
-							count : all.count
+							count : all.count,
+							currentamount : all.currentamount
 						}
-						console.log(newfields);
+						//console.log(newfields);
 						importRows(newfields);
 					}
 					
 					
-			}else{
+			}else if(data.progress == 'completed'){
+				
 				var url = Symphony.Context.get('symphony')+ '/blueprints/sections/';
 				window.location.replace(url);
 			}
