@@ -14,11 +14,18 @@
 			
 			 public function view()
 			{
-				
+				if(isset($_REQUEST['uniqueaction'])){
 					$this->__ajaxImportRows();
+				}elseif($_REQUEST['section']){
+					$this->__removefiles();
+				}
 			
 			}
-			
+			private function __removefiles(){
+				array_map('unlink', glob(MANIFEST."/tmp/*"));
+				$nextFields = array('progress'=>'finished');
+				$this->_Result = $nextFields;
+			}
 			private function getDrivers()
 			{
 				$classes = glob(EXTENSIONS . '/importexport/drivers/*.php');
@@ -41,63 +48,47 @@
 				return $drivers;
 			}
 			
-			private function __getCSV($csv)
+			private function __getCSV()
 			{
-				$fname = MANIFEST.'/tmp/data-1.json';
-				if($csv){			
-					if(file_exists($fname)){
-						unlink($fname);
-					}
-					
-					file_put_contents($fname,json_encode($csv->data));
-				}else{
+					$fname = MANIFEST.'/tmp/data-1.json';
 					$data = file_get_contents($fname);
 					$content = json_decode($data);
 					$container->titles = $content[0];
 					$container->data = $content;
-					
-				
-					return $container;
-				}		
+					return $container;				
 			}
-			private function JsonToCsv($json){
-					$fname = MANIFEST.'/tmp/data-2.json';
-					if($json){
-						if(file_exists($fname)){
-							unlink($fname);
-						}
-						
-						file_put_contents($fname,$json);				
-					}else{
-						$data = file_get_contents($fname);
-						$content = json_decode($data);
-						$container = $content;
-						
-					
-						return $container;
-					}
-					
+			
+			private function __getXML(){
+					$fname = MANIFEST.'/tmp/data-3.xml';			
+					$se = (array) simplexml_load_file($fname);					
+					return $se;
 			}
-			private function importJson($json,$csvNode){
+			
+			private function JsonToCsv(){
+					$fname = MANIFEST.'/tmp/data-2.json';					
+					$data = file_get_contents($fname);					
+					$fm = new FieldManager();
+					$t = array();										
+					$container = json_decode($data);
+					return $container;					
+			}
+			/*private function importJson($json,$csvNode){
 		
 				$fm = new FieldManager();
-				$t = array();
-				
-				foreach($json as $js => $j){
-					$array = (array) $j;
-					
-					foreach($array as $arr => $ar){
-						$a = $fm->fetch($arr,$sectionID);
-						
-						$t[] = $a->get('label');
-					}
-					
+				$t = array();		
+				$json = explode('},{',str_replace(']','',str_replace('[','',$json)));
+				array_pop($json);
+				$ja = array();
+				foreach($json as $js => $jso){
+					$ja[] = str_replace('{','',$jso);
 				}
+				$json = '[{'.implode("},{",$ja).'}]';
+				$json = json_decode($json);
 				$t = array_unique($t);			
 				foreach($t as $f => $field){
 					$csvNode->appendChild(new XMLElement('key', $field));
 				}
-			}
+			}*/
 
 			private function __addVar($name, $value)
 			{
@@ -106,17 +97,41 @@
 			
 			private function returnLast2Levels($item){
 				
-				//foreach($item as $i => $obj){
-					if(is_object($item)){
+				foreach($item as $i => $obj){
+					if(is_object($obj)){
 						
-						$items = array_values((array) $item);
+						$items[] = array_values((array) $obj);
 					}else{
-						$items = $item;
+						$items[] = $obj;
 					}	
-				
+				}
 				return $items;
 			}
-			
+			private function objToArray($obj, &$arr){
+
+				if(!is_object($obj) && !is_array($obj)){
+					$arr = $obj;
+					return $arr;
+				}
+
+				foreach ($obj as $key => $value)
+				{
+					if (!empty($value))
+					{
+						$arr[$key] = array();
+						$this->objToArray($value, $arr[$key]);
+					}
+					else
+					{
+						$arr[$key] = $value;
+					}
+				}
+				return $arr;
+			}
+			    /**
+			 * This function imports 10 rows of the CSV data
+			 * @return void
+			 */
 			private function __ajaxImportRows()
 			{
 				$fm = new FieldManager($this);		
@@ -124,12 +139,15 @@
 				$ext = pathinfo($_REQUEST['file'], PATHINFO_EXTENSION);	
 				if($ext == 'json'){			
 					$section = $fm->fetch(null,$sectionID); // contains field ids
-					$csv = $this->JsonToCsv(false);
+					$csv = $this->JsonToCsv();
 				}elseif($ext == 'csv'){			
-					$csv = $this->__getCSV(false);
+					$csv = $this->__getCSV();
+				}elseif($ext == 'xml'){
+					$csv = $this->__getXML();
 				}
 				
 				$msg = null;
+				
 				
 				if ($csv != false) {
 					// Load the drivers:
@@ -145,8 +163,11 @@
 					$entryID = null;
 					$limit = $_REQUEST['limit'];
 					$currentamount = $_REQUEST['currentamount'];
-					$count = (int) count($csv->data);
-					//$count = (int) $em->fetchCount($sectionID);
+					if($ext != 'xml'){
+						$count = (int) count($csv->data);					
+					}else{
+						$count = (int) count($csv['entry']);					
+					}
 					$co = intval($currentRow * 50);
 					if($currentamount <= $count){
 						$nextFields = array(
@@ -162,7 +183,13 @@
 						);
 						
 					}else{
-						$nextFields = array('progress'=>'completed');
+						$nextFields = array(
+							'row'=> $currentRow,
+							'section'=> $_REQUEST['section'],							
+							'progress'=>'completed',
+							'type'=> $ext
+						);	
+					
 					}
 					
 					
@@ -173,31 +200,28 @@
 					//$newamount = $currentRow + 50;
 					$a = 0;
 					//while($currentamount < $newamount; $currentamount++)
-					for ($i = $currentRow * 50; $i < ($currentRow + 1) * 50; $i++)
+					for ($i = $currentRow * 10; $i < ($currentRow + 1) * 10; $i++)
 					{	
-						$a = $i;
+						$a = $i;						
 						// Start by creating a new entry:
 						$entry = new Entry($this);
 						$entry->set('section_id', $sectionID);
 						
 						// Ignore this entry?
-						$ignore = false;
-						
+						$ignore = false;						
 						// Import this row:
 						if($ext == 'json'){
-							$row = array_values((array) $csv);		
-							$x = array();
-							foreach($row as $r => $ro){
-								$x[] = $this->returnLast2Levels($ro);
-							}
+							$row = array_values((array) $csv);									
+							$r =array();
+							$x =array();
+							foreach($row as $obj){
+								$x[] = $this->objtoArray($obj,$r);
+							}							
 							unset($row);
 							$row = $x[$i];
 							
-							if($row == null){
-								$nextFields['progress'] = 'completed';
-							}
 						}
-						else{
+						elseif($ext == 'csv'){
 							$row = array_values((array) $csvData);
 							//unset($row[0]);
 							$x = array();
@@ -207,10 +231,17 @@
 							unset($row);
 							
 							$row = $x[$i];
-							//$row = $values;
-							if($row == null){
-								$nextFields['status'] = 'completed';
-							}
+							
+						}elseif($ext == 'xml'){
+							
+							$r =array();
+							$x =array();							
+							foreach($csv as $obj){
+								$x[] = (array) $obj;//$this->objtoArray($obj,$r);
+							}							
+							unset($row);
+							$row = $x[0][$i];
+												
 						}
 						
 						if ($row != false) {
@@ -308,8 +339,7 @@
 							//die;
 						}
 					}			
-					$nextFields['currentamount'] = $a +1;
-					
+					$nextFields['currentamount'] = $a +1;					
 				} else {
 					die(__('[ERROR: Data not found!]'));
 				}

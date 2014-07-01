@@ -54,6 +54,7 @@ jQuery(function($){
  */
 function importRows(fields)
 {    	
+	console.log(fields);
 	var importURL = Symphony.Context.get('symphony')+ '/extension/importexport/import/';
     var request = jQuery.ajax({
         url: importURL,
@@ -63,7 +64,7 @@ function importRows(fields)
         data: fields,
         success: function(data, textStatus){            
 			var all = data;
-			//console.log(data);
+			console.log(data);
 			if(data.progress == 'success'){		
 				if(data.row){						
 						var percent = parseInt(data.currentamount) / parseInt(data.count) * 100;						
@@ -92,8 +93,13 @@ function importRows(fields)
 					
 					
 			}else if(data.progress == 'completed'){
-				
-				var url = Symphony.Context.get('symphony')+ '/blueprints/sections/';
+				newfields = {
+							section : all.section,																
+							type: all.type
+						}
+				importRows(newfields);
+			}else if(data.progress == 'finished'){
+					var url = Symphony.Context.get('symphony')+ '/blueprints/sections/';
 				window.location.replace(url);
 			}
         }

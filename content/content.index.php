@@ -105,42 +105,49 @@ class contentExtensionImportexportIndex extends AdministrationPage
      */
     private function __getCSV($csv)
     {
-		$fname = MANIFEST.'/tmp/data-1.json';
-		if($csv){			
+			$fname = MANIFEST.'/tmp/data-1.json';			
 			if(file_exists($fname)){
 				unlink($fname);
-			}
-			
-			file_put_contents($fname,json_encode($csv->data));
-		}else{
-			$data = file_get_contents($fname);
-			$content = json_decode($data);
-			$container->titles = $content[0];
-			$container->data = $content;
-			
-		
-			return $container;
-		}		
+			}			
+			file_put_contents($fname,json_encode($csv->data));			
     }
 	private function JsonToCsv($json){
-			$fname = MANIFEST.'/tmp/data-2.json';
-			if($json){
-				if(file_exists($fname)){
-					unlink($fname);
-				}
-				
-				file_put_contents($fname,$json);				
-			}else{
-				$data = file_get_contents($fname);
-				$content = json_decode($data);
-				$container = $content;
-				
+			$fname = MANIFEST.'/tmp/data-2.json';		
+			if(file_exists($fname)){
+				unlink($fname);
+			}			
+			file_put_contents($fname,$json);							
+	}
+	private function __getXML($csv)
+    {
+			$fname = MANIFEST.'/tmp/data-3.xml';				
+			if(file_exists($fname)){
+				unlink($fname);
+			}			
+			file_put_contents($fname,$csv);			
+    }
+	private function importJson($json,$csvNode,$sectionID){
+		
+		$fm = new FieldManager();
+		$t = array();		
+		$json = json_decode($json);//explode('},{',str_replace(']','',str_replace('[','',$json)));
+		$ja = array();
+		
+		foreach($json as $js => $j){
+			$array = (array) $j;
 			
-				return $container;
+			foreach($array as $arr => $ar){						
+				$t[] = $arr;
 			}
 			
+			
+		}
+		$t = array_unique($t);
+		
+		foreach($t as $f => $field){
+			$csvNode->appendChild(new XMLElement('key', $field));
+		}
 	}
-
     private function __importStep2Page()
     {
         // Store the CSV data in the cache table, so the CSV file will not be stored on the server
@@ -152,13 +159,33 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $filename = $_FILES['csv-file']['name'];
 		$tmpname = $_FILES['csv-file']['tmp_name'];
 		$ext = pathinfo($_FILES['csv-file']['name'], PATHINFO_EXTENSION);	
-		if($ext == 'json'){			
+		if($ext == 'json'){
+			
 			$this->JsonToCsv($csv->file_data);
-			$linecount = count($this->JsonToCsv(false));			
+			$fname = MANIFEST.'/tmp/data-2.json';	
+			$data = file_get_contents($fname);			
+			$fm = new FieldManager();
+			$t = array();		
+			$json = explode('},{',str_replace(']','',str_replace('[','',$data)));			
+			$ja = array();
+			foreach($json as $js => $jso){
+				$ja[] = trim(str_replace('},','',str_replace('{','',$jso)));			
+			}
+			$json = '[{'.implode("},{",$ja).'}]';						
+			$container = json_decode($json);
+			$linecount = count($container);			
 		}elseif($ext == 'csv'){			
 			$this->__getCSV($csv);
 			$linecount = count(file($_FILES['csv-file']['tmp_name']));
+		}elseif($ext == 'xml'){
+			
+			$sxe = simplexml_load_file($_FILES['csv-file']['tmp_name']);
+			
+			$sxe = (array) $sxe;
+			$this->__getXML($csv->file_data);
+			$linecount = count($sxe['entry']);			
 		}
+		
         ///$cache->write('importcsv', serialize($csv), 60 * 60 * 24); // Store for one day
 		
 		
@@ -181,10 +208,15 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $csvNode = new XMLElement('csv');
 		
 		if($ext == 'json'){
-			$json = $csv->file_data;
-			var_dump(json_decode($json,true));
+		
+		
+			$json = $csv->file_data;			
 			$this->importJson($json,$csvNode,$sectionID);
+			
+			
 		}elseif($ext == 'csv'){
+		
+		
 			$count = new XMLElement('count',$linecount);
 			
 			foreach ($csv->titles as $key)
@@ -195,6 +227,25 @@ class contentExtensionImportexportIndex extends AdministrationPage
 				}
 			}
 			$xml->appendChild($count);
+			
+			
+		}elseif($ext =='xml'){
+			$fname = MANIFEST.'/tmp/data-3.xml';			
+			$se = (array) simplexml_load_file($fname);			
+			$count = new XMLElement('count',$linecount);	
+			$i = 0;
+			foreach ($se['entry'] as $key)
+			{					
+				++$i;
+				if($i <= 1){
+					$key = (array) $key;				
+					foreach($key as $k => $ey){					
+						$csvNode->appendChild(new XMLElement('key', $k));
+					}
+				}
+				
+			}			
+			$xml->appendChild($count);						
 		}
 		$fileNode = new XMLElement('file');
 		$fileNode->appendChild(new XMLElement('location',$filename));
@@ -207,128 +258,12 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $xslt->setXSL(EXTENSIONS . '/importexport/content/step2.xsl', true);
         $this->Form->setValue($xslt->generate());
     }
-	private function importJson($json,$csvNode,$sectionID){
-		
-		//$fm = new FieldManager();
-		$t = array();
-		var_dump($json);
-		die;
-		foreach($json as $js => $j){
-			$array = (array) $j;
-			
-			foreach($array as $arr => $ar){
-				//$a = $fm->fetch(null,$sectionID);
-				//var_dump($a);				
-				//var_dump($arr);				
-				//var_dump($sectionID);				
-				$t[] = $arr;//$a->get('label');
-			}
-			
-			
-		}
-		$t = array_unique($t);
-		
-		foreach($t as $f => $field){
-			$csvNode->appendChild(new XMLElement('key', $field));
-		}
-	}
+	
 
     private function __addVar($name, $value)
     {
         $this->Form->appendChild(new XMLElement('var', $value, array('class' => $name)));
     }
-
-    private function __importStep3Page()
-    {
-        // Store the entries:
-        $sectionID = $_POST['section'];
-        $uniqueAction = $_POST['unique-action'];
-        $uniqueField = $_POST['unique-field'];
-        $countNew = 0;
-        $countUpdated = 0;
-        $countIgnored = 0;
-        $countOverwritten = 0;
-		
-        $fm = new FieldManager($this);		
-		
-		
-		$ext = pathinfo($_POST['file'], PATHINFO_EXTENSION);	
-		if($ext == 'json'){			
-			$section = $fm->fetch(null,$sectionID); // contains field ids
-			$csv = $this->JsonToCsv(false);
-			
-		}elseif($ext == 'csv'){			
-			$csv = $this->__getCSV(false);
-			
-		}
-        
-        // Load the information to start the importing process:
-        $this->__addVar('section-id', $sectionID);
-        $this->__addVar('unique-action', $uniqueAction);
-        $this->__addVar('unique-field', $uniqueField);
-        $this->__addVar('import-url', URL . '/symphony/extension/importexport/');
-		
-        // Output the CSV-data:
-        $csvData = $csv->data;
-		
-        $csvTitles = (array) $csv->titles;
-        $this->__addVar('total-entries', count($csvData));
-		$i = 0;
-        $ids = array();
-		if($ext == 'json'){			
-			foreach ($section as $id)
-			{
-				$label = $id->get('label');
-				$ids[] = $label;			
-			}			
-		}elseif($ext == 'csv'){
-			foreach ($csvTitles as $title){				
-				$ids[] = $_POST['field-' . $i];		
-				$i++;				
-			}
-		}
-        // Store the associated Field-ID's:
-       
-        
-        $this->__addVar('field-ids', implode(',', $ids));
-
-        $this->addScriptToHead(URL . '/extensions/importexport/assets/import.js');
-        $this->Form->appendChild(new XMLElement('h2', __('Import in progress...')));
-        $this->Form->appendChild(new XMLElement('div', '<div class="bar"></div>', array('class' => 'progress')));
-        $this->Form->appendChild(new XMLElement('div', null, array('class' => 'console')));
-    }
-
-    private function getDrivers()
-    {
-        $classes = glob(EXTENSIONS . '/importexport/drivers/*.php');
-        $drivers = array();
-        foreach ($classes as $class)
-        {
-            include_once($class);
-            $a = explode('_', str_replace('.php', '', basename($class)));
-            $driverName = '';
-            for ($i = 1; $i < count($a); $i++)
-            {
-                if ($i > 1) {
-                    $driverName .= '_';
-                }
-                $driverName .= $a[$i];
-            }
-            $className = 'ImportDriver_' . $driverName;
-            $drivers[$driverName] = new $className;
-        }
-        return $drivers;
-    }
-
-    /**
-     * This function imports 10 rows of the CSV data
-     * @return void
-     */
-    
-	
-	
-	
-	
 	
     private function __exportMultiLanguage()
     {

@@ -1,7 +1,7 @@
 <?php
 		
 				ini_set('xdebug.var_display_max_depth', 5);
-ini_set('xdebug.var_display_max_children', 256);
+ini_set('xdebug.var_display_max_children', 9000);
 ini_set('xdebug.var_display_max_data', 1024);
 		require_once(BOOT . '/func.utilities.php');
 		require_once(EXTENSIONS . '/importexport/lib/php-export-data/php-export-data.class.php');
@@ -27,23 +27,14 @@ ini_set('xdebug.var_display_max_data', 1024);
 				$type = $_REQUEST['type'];
 				$sm = new SectionManager($this);
 				$section = $sm->fetch($sectionID);			
-				
+				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
 				$fields = $section->fetchFields(); 
 				$fetch = new Helpers();
-				if($type == 'json'){
-					$fieldscols = $fetch->__getField($fields,true);
-				}elseif($type == 'csv'){
-					$fieldscols = $fetch->__getField($fields);
-				}elseif($type == 'xml'){
-					$fieldscols = $fetch->__getField($fields);
-				}
-				
-				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
-				$fieldscols = implode(',',$fieldscols);
-				$fieldscols .= file_get_contents($file);
-				
 				if($type != 'json'){
-														
+					$fieldscols = $fetch->__getField($fields);
+					
+					$fieldscols = implode(',',$fieldscols);
+					$fieldscols .= file_get_contents($file);														
 					if($type == 'csv'){
 						file_put_contents($file,$fieldscols);
 					}elseif($type == 'xml'){
@@ -55,7 +46,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 					}
 								
 				}else{
-					$content = '['.file_get_contents($file).']';
+					$content = '['.rtrim(file_get_contents($file),',').']';
 					$handle = fopen($file,'w');
 					fwrite($handle,$content);
 					fclose($handle);
@@ -76,7 +67,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 					
 					$data = $fetch->fetchData($querycond,$sectionID,$page,$limit);
 					$records = $data[0]['records'];
-					$totalpages = $data[0]['total-pages'];					
+					$totalpages = (int) $data[0]['total-pages'];					
 					$entrys = $this->checkType($records);
 					
 					$entries = array('entries' => $entrys);
@@ -173,11 +164,9 @@ ini_set('xdebug.var_display_max_data', 1024);
 								}	
 								
 							}							
-					}	
-					
+					}						
 					$json[] = json_encode($a);					
 				}								
-				//die;
 				
 				$j = implode(',',$json);				
 				return $j;
@@ -231,16 +220,17 @@ ini_set('xdebug.var_display_max_data', 1024);
 			
 			private function __insert($array,$sectionID,$type){
 				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
-				$handle = fopen($file,'a+');
 				$c = count($array);
-				var_dump($c);
-				die;
-				foreach($array as $data => $dat){					
+				if(file_exists($file) && $type == 'json' && $c == 1){
+					//unlink($file);
+				}
+				$handle = fopen($file,'a+');								
+				foreach($array as $data => $dat){										
 					if($type == 'json'){
 						fwrite($handle, $dat.',');			
 					}else{
 						fwrite($handle, $dat);			
-					}
+					}						
 				}				
 				fclose($handle);
 				unset($array);
