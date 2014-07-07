@@ -168,7 +168,7 @@
 					}else{
 						$count = (int) count($csv['entry']);					
 					}
-					$co = intval($currentRow * 50);
+					$co = intval($currentRow * 200);
 					if($currentamount <= $count){
 						$nextFields = array(
 							'row'=> $currentRow,
@@ -200,7 +200,7 @@
 					//$newamount = $currentRow + 50;
 					$a = 0;
 					//while($currentamount < $newamount; $currentamount++)
-					for ($i = $currentRow * 10; $i < ($currentRow + 1) * 10; $i++)
+					for ($i = $currentRow * 200; $i < ($currentRow + 1) * 200; $i++)
 					{	
 						$a = $i;						
 						// Start by creating a new entry:

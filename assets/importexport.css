@@ -20,7 +20,7 @@ table.import th.unique { width: 80px; }
 	background:#fff;
 	display:none;
 }
-.loader span{
+.loader > span{
 	
 	height:45px;
 	display:block;
@@ -29,10 +29,14 @@ table.import th.unique { width: 80px; }
 	position:absolute;top:0;
 }
 .loader  p{
-	color:#fff;
+	color:#000;
+	font-weight:bold;
 	font-size:14px;
-	position:relative;
+	position:absolute;
+	top:10px;
 	z-index:1;
+	width:100%;
+	text-align:center;
 }
 .loader{
 	border:2px solid #282828;	

@@ -1,4 +1,5 @@
 jQuery(function($){
+	registerExport();
     $("ul.importer-nav a").click(function(){
         $("ul.importer-nav a").removeClass("active");
         $(this).addClass("active");
@@ -15,21 +16,41 @@ jQuery(function($){
 			e.preventDefault();			
 			var loader = $('<div class="loader"><p>Exporting</p></div>');
 			var span = $('<span></span>');
-			var container = $('<div class="container"></div>');
-			
+			var container = $('<div class="container"></div>');					
 			loader.append(span);
 			container.append(loader);
 			$('#wrapper').append(container);
 			var span1 = $('<span class="percent"></span>');
-			$('.loader p').append(span1);
-			xportcsv();			
+			$('.loader p').append(span1);			
+			
+			var newfields = {section : $('select[name=section-export] option:selected').val(),page : 1,limit:500,type:$('select[name=export-type] option:selected').val()};
+			
+			xportcsv(newfields);			
 			$('input[name=export]').parents('form').submit(function(){
 				event.preventDefault();
 			});
 	});
 	
 });
-
+function registerExport(){
+	
+	$('.export-button').click(function(event){
+		event.preventDefault();
+		
+		var loader = $('<div class="loader"><p>Exporting</p></div>');
+			var span = $('<span></span>');
+			var container = $('<div class="container"></div>');					
+			loader.append(span);
+			container.append(loader);
+			$('#wrapper').append(container);
+			var span1 = $('<span class="percent"></span>');
+			$('.loader p').append(span1);
+			var newfields = {filters : $('.export-button').attr('data-filter'),section : $('.export-button').attr('data-sectionhandle'),page : 1,limit:500,type:$('.export-entries option:selected').val()};			
+			console.log(newfields);
+			
+			xportcsv(newfields);
+	});
+}
 function callXport(fields){
 	var new_fields = fields;
 	xportcsv(new_fields);
@@ -40,9 +61,7 @@ function callXport(fields){
 
 function xportcsv(fields){
 		var newfields = fields;				
-		if(newfields == null){
-			newfields = {section : $('select[name=section-export] option:selected').val(),page : 1,limit:500,type:$('select[name=export-type] option:selected').val()};
-		}						
+							
 		
 		importURL = Symphony.Context.get('symphony')+ '/extension/importexport/export/';		
 		
@@ -54,7 +73,7 @@ function xportcsv(fields){
 			data: newfields,
 			success: function(data, textStatus){
 				all = data;
-				
+				console.log(all);
 				if(data['progress'] == 'success'){					
 					if(data['page']){						
 						var percent = parseInt(data['page']) / parseInt(data['total-pages']) * 100;						

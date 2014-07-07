@@ -15,7 +15,6 @@ ini_set('xdebug.var_display_max_data', 1024);
 			
 			 public function view()
 			{	
-				
 				if(isset($_REQUEST['headers'])){
 					$this->__addheaders();
 				}elseif(isset($_REQUEST['section'])){
@@ -57,7 +56,64 @@ ini_set('xdebug.var_display_max_data', 1024);
 			}
 			
 			private function __ajaxexport(){
-				 // Load the fieldmanager:           
+				 // Load the fieldmanager:        
+					if(isset($_REQUEST['filters'])){
+						$filter = $_GET['filters'];
+						$filters = explode(',',$filter);
+						
+						$field = array();
+						foreach($filters as $filts => $f){
+							$s = explode('-',$f);
+							//$fields['field'] = $s[1];
+							
+							$field[] =  $s[1];
+						}
+						$filters = explode('-',$filters[0]);
+						
+						$sm = new SectionManager($this);
+						$id = $sm->fetchIDfromHandle($_REQUEST['section']);
+						$section = $sm->fetch($id);
+						unset($_REQUEST['section']);
+						$_REQUEST['section'] = $id;						
+						/*$f = $field[1];
+						$value =explode(':',$field[0]);
+						$regexp = $value[0];
+						$value = $value[1];						*/
+						//$where = " AND '".$f."' REGEXP '%{".$value."}%'";						//strtoupper($regexp)
+						if (isset($_REQUEST['filter'])) {
+
+							list($field_handle , $filter_value) = explode(':' , $filters[1] , 2);
+
+							$field_names = explode(',' , $field_handle);
+
+							foreach ($field_names as $field_name) {
+
+								$filter_value = rawurldecode($filter_value);
+
+								$filter = Symphony::Database()->fetchVar('id' , 0 , "SELECT `f`.`id`
+														  FROM `tbl_fields` AS `f`, `tbl_sections` AS `s`
+														  WHERE `s`.`id` = `f`.`parent_section`
+														  AND f.`element_name` = '$field_name'
+														  AND `s`.`handle` = '" . $section->get('handle') . "' LIMIT 1");
+
+								$field = FieldManager::fetch($filter);
+
+								if ($field instanceof Field) {
+									// For deprecated reasons, call the old, typo'd function name until the switch to the
+									// properly named buildDSRetrievalSQL function.
+									$field->buildDSRetrivalSQL(array($filter_value) , $joins , $where , false);
+									$filter_value = rawurlencode($filter_value);
+								}
+							}
+
+							if (!is_null($where)) {
+								$where = str_replace('AND' , 'OR' , $where); // multiple fields need to be OR
+								$where = trim($where);
+								$where = ' AND (' . substr($where , 2 , strlen($where)) . ')'; // replace leading OR with AND
+							}
+
+						}
+					}
 					$querycond = array('where'=>$where,'joins'=>$joins);
 					$page = (int)$_REQUEST['page'];								
 					$sectionID = (int)$_REQUEST['section'];
@@ -65,7 +121,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$type = $_REQUEST['type'];
 					$fetch = new Helpers();
 					
-					$data = $fetch->fetchData($querycond,$sectionID,$page,$limit);
+					$data = $fetch->fetchData($querycond,$sectionID,$page,$limit);					
 					$records = $data[0]['records'];
 					$totalpages = (int) $data[0]['total-pages'];					
 					$entrys = $this->checkType($records);

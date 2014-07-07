@@ -54,7 +54,7 @@ jQuery(function($){
  */
 function importRows(fields)
 {    	
-	console.log(fields);
+	//console.log(fields);
 	var importURL = Symphony.Context.get('symphony')+ '/extension/importexport/import/';
     var request = jQuery.ajax({
         url: importURL,
@@ -64,7 +64,7 @@ function importRows(fields)
         data: fields,
         success: function(data, textStatus){            
 			var all = data;
-			console.log(data);
+			//console.log(data);
 			if(data.progress == 'success'){		
 				if(data.row){						
 						var percent = parseInt(data.currentamount) / parseInt(data.count) * 100;						
