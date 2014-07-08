@@ -32,12 +32,27 @@ jQuery(function($){
 	});
 	
 });
+
+function QueryStringToJSON() {            
+    var pairs = location.search.slice(1).split('&');
+    
+    var result = {};
+    pairs.forEach(function(pair) {
+        pair = pair.split('=');
+        result[pair[0]] = decodeURIComponent(pair[1] || '');
+    });
+	//console.log(JSON.stringify(result));
+    return JSON.stringify(result);
+}
+
+
 function registerExport(){
+	
 	
 	$('.export-button').click(function(event){
 		event.preventDefault();
 		
-		var loader = $('<div class="loader"><p>Exporting</p></div>');
+		var loader = $('<div class="loader"><p>(Exporting) </p></div>');
 			var span = $('<span></span>');
 			var container = $('<div class="container"></div>');					
 			loader.append(span);
@@ -45,13 +60,20 @@ function registerExport(){
 			$('#wrapper').append(container);
 			var span1 = $('<span class="percent"></span>');
 			$('.loader p').append(span1);
-			var newfields = {filters : $('.export-button').attr('data-filter'),section : $('.export-button').attr('data-sectionhandle'),page : 1,limit:500,type:$('.export-entries option:selected').val()};			
-			console.log(newfields);
+			var queryString = window.location.search;
+			if(queryString.length != ''){				
+				var query_string = QueryStringToJSON();
+				//console.log(query_string);
+				var newfields = {filter : query_string,section : $('.export-button').attr('data-sectionhandle'),page : 1,limit:500,type:$('.export-entries option:selected').val()};			
+			}else{
+				var newfields = {section : $('.export-button').attr('data-sectionhandle'),page : 1,limit:500,type:$('.export-entries option:selected').val()};			
+			}
+			//console.log(newfields);
 			
 			xportcsv(newfields);
 	});
 }
-function callXport(fields){
+function callXport(fields){	
 	var new_fields = fields;
 	xportcsv(new_fields);
 	$('input[name=export]').parents('form').submit(function(){
@@ -60,11 +82,10 @@ function callXport(fields){
 }
 
 function xportcsv(fields){
-		var newfields = fields;				
-							
-		
+		var newfields = fields;						
+		var query_string = QueryStringToJSON();
 		importURL = Symphony.Context.get('symphony')+ '/extension/importexport/export/';		
-		
+		console.log(newfields);
 		var request = jQuery.ajax({
 			url: importURL,
 			async: true,
@@ -73,7 +94,7 @@ function xportcsv(fields){
 			data: newfields,
 			success: function(data, textStatus){
 				all = data;
-				console.log(all);
+				//console.log(all);
 				if(data['progress'] == 'success'){					
 					if(data['page']){						
 						var percent = parseInt(data['page']) / parseInt(data['total-pages']) * 100;						
@@ -82,14 +103,24 @@ function xportcsv(fields){
 						$('.percent').html(Math.round(percent)+'% Completed');												
 					}
 					if(data){						
-						
-						newfields = {
-							section : all['section'],					
-							page : ++all['page'],
-							limit : all['limit'],
-							type: all['type']
+						if(query_string != ''){
+							newfields = {
+								section : all['section'],					
+								page : ++all['page'],
+								limit : all['limit'],
+								type: all['type'],
+								filter : query_string
+							}
+						}else{
+							newfields = {
+								section : all['section'],					
+								page : ++all['page'],
+								limit : all['limit'],
+								type: all['type']
+							}
 						}
-					}					
+					}
+					//console.log(newfields);
 					callXport(newfields);
 				}else if(data['progress'] == 'headers'){					
 					var file = data['file'];
@@ -103,13 +134,16 @@ function xportcsv(fields){
 				}else{					
 					all = data;					
 					$('.container').remove();
-					if(all['type'] != 'json'){
-						headers = {
-							headers: $('select[name=section-export] option:selected').val(),
-							type : $('select[name=export-type] option:selected').val()
-						}
-						callXport(headers);					
-					}
+					console.log(all);
+					//if(all['type'] != 'json'){
+						//console.log(all);
+
+							headers = {
+								headers: all.section,
+								type : all.type
+							}
+							callXport(headers);	
+					//}
 				}
 				
 			}

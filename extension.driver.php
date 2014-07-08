@@ -63,6 +63,7 @@ Class extension_importexport extends Extension
 					if(!is_null($wrapper)){
 						$actions = $wrapper->getChild(1);
 						$li = new XMLElement('li');
+						$li->setAttribute('class','export-nav');
 						$a = new XMLElement('a','Export Entries');
 						$a->setAttribute('class','button drawer horizontal export-button');
 						$a->setAttribute('data-sectionhandle',$sectionhandle);
@@ -70,7 +71,9 @@ Class extension_importexport extends Extension
 							$keys = 
 							$js = array_keys($_GET['filter']);
 							$key = $js[0];
-							$content = 'filter-'.$_GET['filter'][$key] . ',field-'. $key;							
+							$k = explode(':',$_GET['filter'][$key]);
+							
+							$content = ''.$key.':'.$k[1];							
 							$a->setAttribute('data-filter',$content);												
 						}
 						$a->setAttribute('href',$_GET['symphony-page']);
@@ -105,6 +108,7 @@ Class extension_importexport extends Extension
 				self::$assets_loaded = true;
 
 				$page = Administration::instance()->Page;
+				$page->addStylesheetToHead(URL . '/extensions/importexport/assets/importexport.css','screen',time() + 1,false);
 				$page->addScriptToHead(URL.'/extensions/importexport/assets/importexport.js', 3001);							
 			}
 		}

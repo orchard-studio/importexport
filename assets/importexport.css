@@ -8,6 +8,19 @@ table.import { border-collapse: collapse; cursor: pointer; margin-bottom: 1em; }
 table.import th, table.import td { text-align: left; border-bottom: 1px solid #ccc; padding: 3px 40px 3px 0; }
 table.import td, table.import th { padding: 3px; }
 table.import th.unique { width: 80px; }
+li.export-nav{
+	width:171px;
+}
+li.export-nav a{
+	float:right;
+	margin-left:0;	
+}
+li.export-nav select{
+	float:left;
+	width:47%;
+	padding:2px;
+	margin-top:0;
+}
 .container{
 	width:100%;
 	height:100%;

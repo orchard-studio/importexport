@@ -56,74 +56,80 @@ ini_set('xdebug.var_display_max_data', 1024);
 			}
 			
 			private function __ajaxexport(){
-				 // Load the fieldmanager:        
-					if(isset($_REQUEST['filters'])){
-						$filter = $_GET['filters'];
-						$filters = explode(',',$filter);
+				 // Load the fieldmanager:   
+					$sm = new SectionManager($this);
+					if(!is_numeric($_REQUEST['section'])){
 						
-						$field = array();
-						foreach($filters as $filts => $f){
-							$s = explode('-',$f);
-							//$fields['field'] = $s[1];
-							
-							$field[] =  $s[1];
-						}
-						$filters = explode('-',$filters[0]);
-						
-						$sm = new SectionManager($this);
 						$id = $sm->fetchIDfromHandle($_REQUEST['section']);
-						$section = $sm->fetch($id);
+						$section = $sm->fetch($id);						
 						unset($_REQUEST['section']);
-						$_REQUEST['section'] = $id;						
-						/*$f = $field[1];
-						$value =explode(':',$field[0]);
-						$regexp = $value[0];
-						$value = $value[1];						*/
-						//$where = " AND '".$f."' REGEXP '%{".$value."}%'";						//strtoupper($regexp)
-						if (isset($_REQUEST['filter'])) {
+						$_REQUEST['section'] = $id;	
+					}else{
+						$section = $sm->fetch($_REQUEST['section']);	
+						
+					}					
+					$filter = $filter_value = $where = $joins = NULL;
+					if(isset($_REQUEST['filter'])){
+						$ftls = $_REQUEST['filter'];
+						$keys = array_keys((array) json_decode($_REQUEST['filter']));
+						$values = array_values((array) json_decode($_REQUEST['filter']));
+						$keys = str_replace('filter','',str_replace(']','',str_replace('[','',$keys[0])));
+						$values = str_replace('regexp:','',$values[0]);
+						unset($_REQUEST['filter']);
+						$_REQUEST['filter'] = $keys .':'.$values;
+								
+						//  ?filter=[colour]:Orange
+						//if (isset($_REQUEST['filter'])) {
 
-							list($field_handle , $filter_value) = explode(':' , $filters[1] , 2);
-
-							$field_names = explode(',' , $field_handle);
-
-							foreach ($field_names as $field_name) {
-
+							list($field_handle , $filter_value) = explode(':' ,$_REQUEST['filter'] , 2);
+							if(!is_array($field_handle)){
+								if(strpos($field_handle,',')){
+									$field_names = explode(',' , $field_handle);
+								}else{
+									$field_names[] = $field_handle;
+								}
+							}else{
+								$field_names = $field_handle;
+							}
+							//$field_names = explode(',' , $field_handle);							
+							foreach ($field_names as $field_name) {								
 								$filter_value = rawurldecode($filter_value);
-
-								$filter = Symphony::Database()->fetchVar('id' , 0 , "SELECT `f`.`id`
-														  FROM `tbl_fields` AS `f`, `tbl_sections` AS `s`
-														  WHERE `s`.`id` = `f`.`parent_section`
-														  AND f.`element_name` = '$field_name'
-														  AND `s`.`handle` = '" . $section->get('handle') . "' LIMIT 1");
+								
+								$filter = Symphony::Database()->fetchVar('id' , 0 , "SELECT `f`.`id`  FROM `tbl_fields` AS `f`, `tbl_sections` AS `s`
+								WHERE `s`.`id` = `f`.`parent_section`  AND f.`element_name` = '$field_name'  AND `s`.`handle` = '" . $section->get('handle') . "' "); // LIMIT 1
 
 								$field = FieldManager::fetch($filter);
-
+								//var_dump($field->get('element_name'));
 								if ($field instanceof Field) {
 									// For deprecated reasons, call the old, typo'd function name until the switch to the
 									// properly named buildDSRetrievalSQL function.
-									$field->buildDSRetrivalSQL(array($filter_value) , $joins , $where , false);
+									//$field->buildDSRetrievalSQL(array($filter_value) , $joins , $where , false);
+									$field->buildRegexSQL('regexp:'.$filter_value,array('value'),$joins,$where);
+									
 									$filter_value = rawurlencode($filter_value);
-								}
+								}							
 							}
-
+							
+							//var_dump($field);
+							
 							if (!is_null($where)) {
 								$where = str_replace('AND' , 'OR' , $where); // multiple fields need to be OR
 								$where = trim($where);
 								$where = ' AND (' . substr($where , 2 , strlen($where)) . ')'; // replace leading OR with AND
-							}
-
-						}
+							}							
+						//}
+						
 					}
 					$querycond = array('where'=>$where,'joins'=>$joins);
 					$page = (int)$_REQUEST['page'];								
 					$sectionID = (int)$_REQUEST['section'];
 					$limit = $_REQUEST['limit'];
 					$type = $_REQUEST['type'];
-					$fetch = new Helpers();
-					
+					$fetch = new Helpers();					
 					$data = $fetch->fetchData($querycond,$sectionID,$page,$limit);					
 					$records = $data[0]['records'];
 					$totalpages = (int) $data[0]['total-pages'];					
+					
 					$entrys = $this->checkType($records);
 					
 					$entries = array('entries' => $entrys);
@@ -140,13 +146,14 @@ ini_set('xdebug.var_display_max_data', 1024);
 									'limit' => $limit,
 									'progress'=>'success',
 									'total-pages'=>$totalpages,
-									'type' => $type
+									'type' => $type,
+									'filter' => $ftls
 						);
 						$this->_Result = $next;
 					}elseif($entries['entries'] == ''){
 						$this->_Result = array('progress'=>'noentries');			
 					}else{						
-						$this->_Result = array('progress'=>'completed');									
+						$this->_Result = array('progress'=>'completed','section'=>$sectionID,'type'=>$type);									
 					}
 			}
 			private function checkType($records){
