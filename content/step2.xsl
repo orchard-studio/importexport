@@ -6,6 +6,9 @@
 
             <h2>Select corresponding field</h2>
             <p>Please select the corresponding field which should be used to populate the entry with:</p>
+			<xsl:if test="data/csv/id != ''">
+				<p id="existsID"><b>(There is currently an ID key in your data, it will be used to create your new entry and retain your ID)</b></p>				
+			</xsl:if>
             <table class="import">
                 <tr>
                     <th>

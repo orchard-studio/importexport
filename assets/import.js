@@ -19,7 +19,7 @@ jQuery(function($){
 	});
 	$('input[name=import-step-3]').parents('form').submit(function(event){
 		event.preventDefault();
-		var a = [];
+		var a = [];		
 		$('.fields.small').each(function(i){
 			a.push($(this).find('option:selected').val());
 			

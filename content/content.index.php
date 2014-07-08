@@ -126,7 +126,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
 			}			
 			file_put_contents($fname,$csv);			
     }
-	private function importJson($json,$csvNode,$sectionID){
+	private function importJson($json,$csvNode,$sectionID,$xml){
 		
 		$fm = new FieldManager();
 		$t = array();		
@@ -143,10 +143,16 @@ class contentExtensionImportexportIndex extends AdministrationPage
 			
 		}
 		$t = array_unique($t);
-		
+		$count = new XMLElement('count',$linecount);
 		foreach($t as $f => $field){
-			$csvNode->appendChild(new XMLElement('key', $field));
+			if($f != 'id'){
+							$csvNode->appendChild(new XMLElement('key', $field));
+						}else{
+							$csvNode->appendChild(new XMLElement('id', $field));
+						}
+						
 		}
+		$xml->appendChild($count);
 	}
     private function __importStep2Page()
     {
@@ -211,7 +217,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
 		
 		
 			$json = $csv->file_data;			
-			$this->importJson($json,$csvNode,$sectionID);
+			$this->importJson($json,$csvNode,$sectionID,$xml);
 			
 			
 		}elseif($ext == 'csv'){
@@ -220,12 +226,18 @@ class contentExtensionImportexportIndex extends AdministrationPage
 			$count = new XMLElement('count',$linecount);
 			
 			foreach ($csv->titles as $key)
-			{			
-				$key = explode(',',$key);
-				foreach($key as $k => $ey){
-					$csvNode->appendChild(new XMLElement('key', $ey));
+			{
+				//var_dump($key);
+				//$key = explode(',',$key);
+				if($key != 'id'){
+					//foreach($key as $k => $ey){
+						$csvNode->appendChild(new XMLElement('key', $key));
+					//}
+				}else{
+					$csvNode->appendChild(new XMLElement('id', $key));
 				}
 			}
+			
 			$xml->appendChild($count);
 			
 			
@@ -238,9 +250,14 @@ class contentExtensionImportexportIndex extends AdministrationPage
 			{					
 				++$i;
 				if($i <= 1){
-					$key = (array) $key;				
-					foreach($key as $k => $ey){					
-						$csvNode->appendChild(new XMLElement('key', $k));
+					$key = (array) $key;
+					foreach($key as $k => $ey){
+						if($k != 'id'){
+							$csvNode->appendChild(new XMLElement('key', $k));
+						}else{
+							$csvNode->appendChild(new XMLElement('id', $k));
+						}
+						
 					}
 				}
 				

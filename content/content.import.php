@@ -69,7 +69,7 @@
 					$data = file_get_contents($fname);					
 					$fm = new FieldManager();
 					$t = array();										
-					$container = json_decode($data);
+					$container = json_decode($data);					
 					return $container;					
 			}
 			/*private function importJson($json,$csvNode){
@@ -199,6 +199,7 @@
 					///$currentamount = $_REQUEST['count'];
 					//$newamount = $currentRow + 50;
 					$a = 0;
+					
 					//while($currentamount < $newamount; $currentamount++)
 					for ($i = $currentRow * 200; $i < ($currentRow + 1) * 200; $i++)
 					{	
@@ -240,12 +241,29 @@
 								$x[] = (array) $obj;//$this->objtoArray($obj,$r);
 							}							
 							unset($row);
+							
 							$row = $x[0][$i];
-												
+							//var_dump($x[0]);
+							//var_dump($i);
 						}
 						
 						if ($row != false) {
-							
+								//var_dump($row);
+								if(array_key_exists('id',$row)){
+									
+									$entry->set('id',$row['id']);
+																		
+									//die;
+									//$entry->assignEntryId($row['id']);
+									unset($row['id']);									
+								}elseif(is_numeric($row[0])){
+									$entry->set('id',$row[0]);
+									
+									//var_dump($entry);
+									//die;
+									//$entry->assignEntryId($row['id']);
+									unset($row[0]);				
+								}
 							// If a unique field is used, make sure there is a field selected for this:
 							if ($uniqueField != 'no' && $fieldIDs[$uniqueField] == 0) {
 								die(__('[ERROR: No field id sent for: "' . $csvTitles[$uniqueField] . '"]'));
@@ -257,6 +275,7 @@
 								$field = $fm->fetch($fieldIDs[$uniqueField]);
 								
 								$type = $field->get('type');
+								
 								if (isset($drivers[$type])) {
 									$drivers[$type]->setField($field);
 									
@@ -265,8 +284,7 @@
 									$drivers['default']->setField($field);
 									
 									$entryID = $drivers['default']->scanDatabase($row[$csvTitles[$uniqueField]]);
-								}
-								
+								}								
 								if ($entryID != false) {
 									// Update? Ignore? Add new?
 									switch ($uniqueAction)
@@ -295,40 +313,47 @@
 								foreach ($row as $val => $value)
 								{
 									
+										//var_dump($value);
+										//var_dump($val);
 										
-										// When no unique field is found, treat it like a new entry
-										// Otherwise, stop processing to safe CPU power.
-										$fieldID = intval($fieldIDs[$j]);
 										
-										// If $fieldID = 0, then `Don't use` is selected as field. So don't use it! :-P
-										if ($fieldID != 0) {
-											$field = $fm->fetch($fieldID);
+										if($val != 'id'){
 											
-											// Get the corresponding field-type:
-											$type = $field->get('type');
+											// When no unique field is found, treat it like a new entry
+											// Otherwise, stop processing to safe CPU power.
+											$fieldID = intval($fieldIDs[$j]);
 											
-											if (isset($drivers[$type])) {
-												$drivers[$type]->setField($field);
-												$data = $drivers[$type]->import($value, $entryID);
-											} else {
-												$drivers['default']->setField($field);
+											// If $fieldID = 0, then `Don't use` is selected as field. So don't use it! :-P
+											if ($fieldID != 0) {
+												$field = $fm->fetch($fieldID);
 												
-																							
-												$data = $drivers['default']->import($value, $entryID);
-											}
-											// Set the data:
-											$msg->data = $data;
-											$msg->fields = $fieldID;
-											if ($data != false) {
-												$entry->setData($fieldID, $data);
-											}
+												// Get the corresponding field-type:
+												$type = $field->get('type');
+												
+												if($type == 'upload' && file_exists($value) == false){
+													$value = '';
+												}
+												
+												if (isset($drivers[$type])) {
+													$drivers[$type]->setField($field);													
+													$data = $drivers[$type]->import($value, $entryID);													
+												} else {
+													$drivers['default']->setField($field);																									
+													$data = $drivers['default']->import($value, $entryID);													
+												}
+												// Set the data:
+												$msg->data = $data;
+												$msg->fields = $fieldID;
+												if ($data != false) {
+													$entry->setData($fieldID, $data);
+												}
+												
 											
-										
+											}
+											//var_dump($entry);	
+											//var_dump($fieldID);	
+												
 										}
-										//var_dump($data);	
-										//var_dump($fieldID);	
-											
-									
 									$j++;
 								}
 								
@@ -338,8 +363,10 @@
 							}
 							//die;
 						}
-					}			
-					$nextFields['currentamount'] = $a +1;					
+					}		
+			
+					$nextFields['currentamount'] = $a +1;	
+					//die;
 				} else {
 					die(__('[ERROR: Data not found!]'));
 				}

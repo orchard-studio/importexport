@@ -45,7 +45,7 @@
 				$fetch = new Helpers();
 				if($type != 'json'){
 					$fieldscols = $fetch->__getField($fields);					
-					$fieldscols = implode(',',$fieldscols);
+					$fieldscols = '"id"'.','.implode(',',$fieldscols);
 					$fieldscols .= file_get_contents($file);														
 					if($type == 'csv'){
 						
@@ -113,12 +113,39 @@
 							$ftls = $_REQUEST['filter'];
 							$keys = array_keys((array) json_decode($_REQUEST['filter']));
 							$values = array_values((array) json_decode($_REQUEST['filter']));
-							$keys = str_replace('filter','',str_replace(']','',str_replace('[','',$keys[0])));
-							$values = str_replace('regexp:','',$values[0]);
+							
+							$k  = array();
+							$v  = array();
+							foreach($keys as $key => $ke){
+								$k[] = str_replace('filter','',str_replace(']','',str_replace('[','',$ke)));
+							}
+							//$fields = implode(',',$k);
+							//var_dump($fields);
+							
+							foreach($values as $value => $va){
+								$vs = explode(':',$va);
+								$v[] = $vs[1];//str_replace('filter','',str_replace(']','',str_replace('[','',$va)));
+							}					
+							//$vals = implode(',',$v);
+							
+							//$a = array_combine($k,$v);
+							//var_dump($vals);
+							
+							//unset($k);
+							//unset($v);
+							//foreach($a as $fil => $filt){
+							////	$k[] = $fil.':'.$filt;
+							//}
+							//var_dump($k);
+							//$keys[] = str_replace('filter','',str_replace(']','',str_replace('[','',$keys[0])));
+							//$values[] = str_replace('regexp:','',$values[0]);
 							unset($_REQUEST['filter']);
-							$_REQUEST['filter'] = $keys .':'.$values;
-
-							list($field_handle , $filter_value) = explode(':' ,$_REQUEST['filter'] , 2);
+							$_REQUEST['filter'] = $fields.':'.$vals;
+							
+							//var_dump($_REQUEST['filter']);
+							//list($field_handle , $filter_value) = explode(':' ,$_REQUEST['filter'] , 2);
+							$field_handle  = $k;
+							$filter_value = $v;
 							if(!is_array($field_handle)){
 								if(strpos($field_handle,',')){
 									$field_names = explode(',' , $field_handle);
@@ -129,19 +156,24 @@
 								$field_names = $field_handle;
 							}					
 							foreach ($field_names as $field_name) {								
-								$filter_value = rawurldecode($filter_value);
-								
+								//$filter_value = rawurldecode($filter_value);
+								//var_dump($filter_value);
+								//var_dump($field_name);
 								$filter = Symphony::Database()->fetchVar('id' , 0 , "SELECT `f`.`id`  FROM `tbl_fields` AS `f`, `tbl_sections` AS `s`
 								WHERE `s`.`id` = `f`.`parent_section`  AND f.`element_name` = '$field_name'  AND `s`.`handle` = '" . $section->get('handle') . "' "); // LIMIT 1
 
 								$field = FieldManager::fetch($filter);
+								//var_dump($field);
 								if ($field instanceof Field) {
 									// For deprecated reasons, call the old, typo'd function name until the switch to the
 									// properly named buildDSRetrievalSQL function.
+									//$field->buildDSRetrievalSQL($filter_value , $joins , $where , false);
 									//$field->buildDSRetrievalSQL(array($filter_value) , $joins , $where , false);
 									// removed the previous function to handle ds sql execution with regex instead
-									$field->buildRegexSQL('regexp:'.$filter_value,array('value'),$joins,$where);									
-									$filter_value = rawurlencode($filter_value);
+									foreach($filter_value as $filte => $f){
+										$field->buildRegexSQL('regexp:'.$f,array('value'),$joins,$where);									
+									}
+									//$filter_value = rawurlencode($filter_value);
 								}							
 							}
 							if (!is_null($where)) {
@@ -150,6 +182,8 @@
 								$where = ' AND (' . substr($where , 2 , strlen($where)) . ')'; // replace leading OR with AND
 							}																			
 					}
+					//var_dump($where);
+					//die;
 					
 					$querycond = array('where'=>$where,'joins'=>$joins);
 					$page = (int)$_REQUEST['page'];								
@@ -157,7 +191,8 @@
 					$limit = $_REQUEST['limit'];
 					$type = $_REQUEST['type'];
 					$fetch = new Helpers();					
-					$data = $fetch->fetchData($querycond,$sectionID,$page,$limit);					
+					$data = $fetch->fetchData($querycond,$sectionID,$page,$limit);
+					
 					$records = $data[0]['records'];
 					$totalpages = (int) $data[0]['total-pages'];					
 					
@@ -225,11 +260,14 @@
 			private function __getCsvValues($array){						
 				$ents = array();
 				$fetch = new Helpers();
-					
+				
 				foreach($array as $en => $ent){
 					$data = array_values((array)$ent);
-					$all = $fetch->getVals($data[1]);					
-					$ents[] = implode(',',$all);					
+					
+					//$all  = $data[0]['id'];
+					$all = $fetch->getVals($data[1]);
+					
+					$ents[] = '"'.$data[0]['id'] .'",' .implode(',',$all);					
 				}
 				
 				$l = "\r\n".implode("\r\n",$ents);		
@@ -253,9 +291,12 @@
 				$a = array();
 				foreach($array as $en => $ent){						
 					$data = array_values((array)$ent);										
-					$fields = array_values($fields);
+					$fields = array_values($fields);					
+					$a['id'] = $data[0]['id'];
 					$data = array_values($data[1]);
-					foreach($fields as $fi => $f){
+					
+					foreach($fields as $fi => $f){							
+							
 							if($data[$fi] != null){
 								if(array_key_exists('value',$data[$fi]) && $data[$fi]['value'] != null){
 									$a[$f] =  $data[$fi]['value'];
@@ -278,10 +319,9 @@
 								}	
 								
 							}							
-					}						
+					}					
 					$json[] = json_encode($a);					
 				}								
-				
 				$j = implode(',',$json);				
 				return $j;
 			}
@@ -303,6 +343,7 @@
 				foreach($array as $en => $ent){						
 					$data = array_values((array)$ent);										
 					$fields = array_values($fields);
+					$a['id'] = $data[0]['id'];
 					$data = array_values($data[1]);
 					foreach($fields as $fi => $f){
 							if($data[$fi] != null){
@@ -316,6 +357,7 @@
 									$a[$f] = $data[$fi]['relation_id'];
 									
 								}elseif(array_key_exists('file',$data[$fi]) && $data[$fi]['file'] != null){
+									
 									$a[$f] = $data[$fi]['file'];
 									
 								}else{

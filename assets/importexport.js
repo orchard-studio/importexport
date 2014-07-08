@@ -64,7 +64,7 @@ function registerExport(){
 			}else{
 				var newfields = {section : $('.export-button').attr('data-sectionhandle'),page : 1,limit:500,type:$('.export-entries option:selected').val()};			
 			}
-			
+			//console.log(newfields);
 			xportcsv(newfields);
 	});
 }
