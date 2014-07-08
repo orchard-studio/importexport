@@ -42,7 +42,6 @@ jQuery(function($){
 			fieldids : ids,
 			count : $('input[name=count]').val()
 		}
-		//console.log(fields);
 		importRows(fields);
 	
 	});    
@@ -54,7 +53,6 @@ jQuery(function($){
  */
 function importRows(fields)
 {    	
-	//console.log(fields);
 	var importURL = Symphony.Context.get('symphony')+ '/extension/importexport/import/';
     var request = jQuery.ajax({
         url: importURL,
@@ -64,7 +62,6 @@ function importRows(fields)
         data: fields,
         success: function(data, textStatus){            
 			var all = data;
-			//console.log(data);
 			if(data.progress == 'success'){		
 				if(data.row){						
 						var percent = parseInt(data.currentamount) / parseInt(data.count) * 100;						
@@ -87,7 +84,6 @@ function importRows(fields)
 							count : all.count,
 							currentamount : all.currentamount
 						}
-						//console.log(newfields);
 						importRows(newfields);
 					}
 					

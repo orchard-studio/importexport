@@ -11,6 +11,12 @@ Class Helpers{
 	var $page = null;
 	var $limit = null;
 	
+	/*********************************
+			function fetchData()			
+			grabs all data perpage from the section 
+					
+	********************************/
+			
 	function fetchData($querycond,$sectionID,$page,$limit){
 		$em = new EntryManager($this);
 		$count = $em->fetchCount($sectionID,$querycond['where'],$querycond['joins']);
@@ -19,14 +25,16 @@ Class Helpers{
 		$all  = array($pageentries,$totalpages,$count);
 		return $all;
 	}
+	
+	
+	/*********************************
+			function getVals()			
+			extracts the values from the objects provdied and formats according to the $noquotes value
+					
+	********************************/
 	function getVals($data,$noquotes = false,$f = false,$fi = false){
-		$a = array();		
-		//$diff = array_values($diff);
-		
-		
-		
+		$a = array();				
 		foreach($data as $d => $dat){				
-				//var_dump($d);
 				if($f == $d){
 					if($noquotes){
 						
@@ -110,6 +118,12 @@ Class Helpers{
 		
 	}
 	
+	
+	/*********************************
+			function fetchData()			
+			merges several arrays when they do not have  same amount of values
+					
+	********************************/
 	function array_insert(&$array,$element,$position=null) {
 		if (count($array) == 0) {
 			$array[] = $element;
@@ -142,6 +156,12 @@ Class Helpers{
 		return $array;
 	}
 	
+	
+	/*********************************
+			function fetchData()			
+			grabs all data perpage from the section 
+					
+	********************************/
 	function closest($array, $number) {
 
 		sort($array);
@@ -150,6 +170,12 @@ Class Helpers{
 		}
 		return end($array); // or return NULL;
 	}
+	
+	/*********************************
+			function __getField()			
+			grabs all fields handles and formats according to the $noquotes value
+					
+	********************************/
 	function __getField($fields,$noquotes = false){
 		$r = array();		
 		foreach($fields as $field){				

@@ -32,8 +32,9 @@
 					$param : $_REQUEST structure 
 					$_REQUEST['headers'] = (string) / (number) [represents section handle of section id]					
 					$_REQUEST['type'] = (string) [represents the chosen export type 'json/xml/csv/excel' ] 										
-			
+						
 			********************************/
+			
 			private function __addheaders(){
 				$sectionID = $_REQUEST['headers'];
 				$type = $_REQUEST['type'];

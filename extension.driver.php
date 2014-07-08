@@ -67,14 +67,15 @@ Class extension_importexport extends Extension
 						$a = new XMLElement('a','Export Entries');
 						$a->setAttribute('class','button drawer horizontal export-button');
 						$a->setAttribute('data-sectionhandle',$sectionhandle);
+						
 						if(isset($_GET['filter'])){
 							$js = array_keys($_GET['filter']);
 							$key = $js[0];
-							$k = explode(':',$_GET['filter'][$key]);
-							
+							$k = explode(':',$_GET['filter'][$key]);							
 							$content = ''.$key.':'.$k[1];							
 							$a->setAttribute('data-filter',$content);												
 						}
+						
 						$a->setAttribute('href',$_GET['symphony-page']);
 						$select = new XMLElement('select');
 						$select->setAttribute('class','filtering-fields export-entries');
@@ -90,10 +91,7 @@ Class extension_importexport extends Extension
 						$li->appendChild($select);
 						$actions->appendChild($li);
 						
-					}
-					if(isset($_GET['filter'])){
-						//var_dump($_GET);
-					}
+					}					
 			}			
 			
 	}

@@ -21,10 +21,8 @@ jQuery(function($){
 			container.append(loader);
 			$('#wrapper').append(container);
 			var span1 = $('<span class="percent"></span>');
-			$('.loader p').append(span1);			
-			
-			var newfields = {section : $('select[name=section-export] option:selected').val(),page : 1,limit:500,type:$('select[name=export-type] option:selected').val()};
-			
+			$('.loader p').append(span1);						
+			var newfields = {section : $('select[name=section-export] option:selected').val(),page : 1,limit:500,type:$('select[name=export-type] option:selected').val()};			
 			xportcsv(newfields);			
 			$('input[name=export]').parents('form').submit(function(){
 				event.preventDefault();
@@ -41,7 +39,6 @@ function QueryStringToJSON() {
         pair = pair.split('=');
         result[pair[0]] = decodeURIComponent(pair[1] || '');
     });
-	//console.log(JSON.stringify(result));
     return JSON.stringify(result);
 }
 
@@ -63,12 +60,10 @@ function registerExport(){
 			var queryString = window.location.search;
 			if(queryString.length != ''){				
 				var query_string = QueryStringToJSON();
-				//console.log(query_string);
 				var newfields = {filter : query_string,section : $('.export-button').attr('data-sectionhandle'),page : 1,limit:500,type:$('.export-entries option:selected').val()};			
 			}else{
 				var newfields = {section : $('.export-button').attr('data-sectionhandle'),page : 1,limit:500,type:$('.export-entries option:selected').val()};			
 			}
-			//console.log(newfields);
 			
 			xportcsv(newfields);
 	});
@@ -94,7 +89,6 @@ function xportcsv(fields){
 			data: newfields,
 			success: function(data, textStatus){
 				all = data;
-				//console.log(all);
 				if(data['progress'] == 'success'){					
 					if(data['page']){						
 						var percent = parseInt(data['page']) / parseInt(data['total-pages']) * 100;						
@@ -119,8 +113,7 @@ function xportcsv(fields){
 								type: all['type']
 							}
 						}
-					}
-					//console.log(newfields);
+					}					
 					callXport(newfields);
 				}else if(data['progress'] == 'headers'){					
 					var file = data['file'];
@@ -134,16 +127,11 @@ function xportcsv(fields){
 				}else{					
 					all = data;					
 					$('.container').remove();
-					console.log(all);
-					//if(all['type'] != 'json'){
-						//console.log(all);
-
 							headers = {
 								headers: all.section,
 								type : all.type
 							}
 							callXport(headers);	
-					//}
 				}
 				
 			}
