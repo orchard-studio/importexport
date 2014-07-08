@@ -1,14 +1,15 @@
 <?php
 		
-				ini_set('xdebug.var_display_max_depth', 5);
-ini_set('xdebug.var_display_max_children', 9000);
-ini_set('xdebug.var_display_max_data', 1024);
+		ini_set('xdebug.var_display_max_depth', 5);
+		ini_set('xdebug.var_display_max_children', 9000);
+		ini_set('xdebug.var_display_max_data', 1024);
 		require_once(BOOT . '/func.utilities.php');
 		require_once(EXTENSIONS . '/importexport/lib/php-export-data/php-export-data.class.php');
 		require_once(EXTENSIONS . '/importexport/lib/parsecsv-0.3.2/parsecsv.lib.php');		
 		require_once(TOOLKIT . '/class.jsonpage.php');		
 		require_once(EXTENSIONS . '/importexport/lib/helpers/helpers.sym.php');
 		require_once(EXTENSIONS . '/importexport/lib/helpers/arraytoxml.php');
+		
 		class contentExtensionImportexportExport extends JSONPage{
 			
 			
@@ -21,6 +22,18 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$this->__ajaxexport();
 				}
 			}
+			
+			
+			/*********************************
+			function __addheaders()
+			
+					:this function adds the final column handles to the first line of the file
+					
+					$param : $_REQUEST structure 
+					$_REQUEST['headers'] = (string) / (number) [represents section handle of section id]					
+					$_REQUEST['type'] = (string) [represents the chosen export type 'json/xml/csv/excel' ] 										
+			
+			********************************/
 			private function __addheaders(){
 				$sectionID = $_REQUEST['headers'];
 				$type = $_REQUEST['type'];
@@ -30,20 +43,22 @@ ini_set('xdebug.var_display_max_data', 1024);
 				$fields = $section->fetchFields(); 
 				$fetch = new Helpers();
 				if($type != 'json'){
-					$fieldscols = $fetch->__getField($fields);
-					
+					$fieldscols = $fetch->__getField($fields);					
 					$fieldscols = implode(',',$fieldscols);
 					$fieldscols .= file_get_contents($file);														
 					if($type == 'csv'){
+						
 						file_put_contents($file,$fieldscols);
+						
 					}elseif($type == 'xml'){
+					
 						$content = new ArrayToXml();
-						$c = $content->buildXml($file);//'['.file_get_contents($file).']';
+						$c = $content->buildXml($file);
 						$handle = fopen($file,'w');
 						fwrite($handle,$c);
 						fclose($handle);
-					}
-								
+					
+					}								
 				}else{
 					$content = '['.rtrim(file_get_contents($file),',').']';
 					$handle = fopen($file,'w');
@@ -55,31 +70,52 @@ ini_set('xdebug.var_display_max_data', 1024);
 				
 			}
 			
+			
+			
+			/*********************************
+			function __ajaxexport()
+					
+					$param : $_REQUEST structure 
+					$_REQUEST['section'] = (string) / (number) [represents section handle of section id]
+					$_REQUEST['page'] = (number) [represents the current page number and is incremented per request til reaches maximum pages]
+					$_REQUEST['type'] = (string) [represents the chosen export type 'json/xml/csv/excel' ] 
+					$_REQUEST['total-pages'] = (number) [represents the total amount of pages found after the first request]
+					$_REQUEST['limit'] = (number) [represents the amount of entries to grab per request]
+					$_REQUEST['progress'] = (string) [contains the current progress of all the pages and batched entries]
+					$_REQUEST['filter'] = (string) [contains a json object string to decode allowing export of filtered section entries]
+					
+			
+			********************************/
 			private function __ajaxexport(){
 				 // Load the fieldmanager:   
 					$sm = new SectionManager($this);
+					// checking for section string to convert to id instead
 					if(!is_numeric($_REQUEST['section'])){
 						
 						$id = $sm->fetchIDfromHandle($_REQUEST['section']);
 						$section = $sm->fetch($id);						
 						unset($_REQUEST['section']);
-						$_REQUEST['section'] = $id;	
-					}else{
-						$section = $sm->fetch($_REQUEST['section']);	
+						$_REQUEST['section'] = $id;
 						
-					}					
+					}else{
+					
+						$section = $sm->fetch($_REQUEST['section']);							
+						
+					}	
+					
 					$filter = $filter_value = $where = $joins = NULL;
+					// check for filtering 
+					
 					if(isset($_REQUEST['filter'])){
-						$ftls = $_REQUEST['filter'];
-						$keys = array_keys((array) json_decode($_REQUEST['filter']));
-						$values = array_values((array) json_decode($_REQUEST['filter']));
-						$keys = str_replace('filter','',str_replace(']','',str_replace('[','',$keys[0])));
-						$values = str_replace('regexp:','',$values[0]);
-						unset($_REQUEST['filter']);
-						$_REQUEST['filter'] = $keys .':'.$values;
-								
-						//  ?filter=[colour]:Orange
-						//if (isset($_REQUEST['filter'])) {
+					
+							/* grabs filters and converts the filters json string to colon seperated string for field name and value to filter by*/
+							$ftls = $_REQUEST['filter'];
+							$keys = array_keys((array) json_decode($_REQUEST['filter']));
+							$values = array_values((array) json_decode($_REQUEST['filter']));
+							$keys = str_replace('filter','',str_replace(']','',str_replace('[','',$keys[0])));
+							$values = str_replace('regexp:','',$values[0]);
+							unset($_REQUEST['filter']);
+							$_REQUEST['filter'] = $keys .':'.$values;
 
 							list($field_handle , $filter_value) = explode(':' ,$_REQUEST['filter'] , 2);
 							if(!is_array($field_handle)){
@@ -90,8 +126,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 								}
 							}else{
 								$field_names = $field_handle;
-							}
-							//$field_names = explode(',' , $field_handle);							
+							}					
 							foreach ($field_names as $field_name) {								
 								$filter_value = rawurldecode($filter_value);
 								
@@ -99,27 +134,22 @@ ini_set('xdebug.var_display_max_data', 1024);
 								WHERE `s`.`id` = `f`.`parent_section`  AND f.`element_name` = '$field_name'  AND `s`.`handle` = '" . $section->get('handle') . "' "); // LIMIT 1
 
 								$field = FieldManager::fetch($filter);
-								//var_dump($field->get('element_name'));
 								if ($field instanceof Field) {
 									// For deprecated reasons, call the old, typo'd function name until the switch to the
 									// properly named buildDSRetrievalSQL function.
 									//$field->buildDSRetrievalSQL(array($filter_value) , $joins , $where , false);
-									$field->buildRegexSQL('regexp:'.$filter_value,array('value'),$joins,$where);
-									
+									// removed the previous function to handle ds sql execution with regex instead
+									$field->buildRegexSQL('regexp:'.$filter_value,array('value'),$joins,$where);									
 									$filter_value = rawurlencode($filter_value);
 								}							
 							}
-							
-							//var_dump($field);
-							
 							if (!is_null($where)) {
 								$where = str_replace('AND' , 'OR' , $where); // multiple fields need to be OR
 								$where = trim($where);
 								$where = ' AND (' . substr($where , 2 , strlen($where)) . ')'; // replace leading OR with AND
-							}							
-						//}
-						
+							}																			
 					}
+					
 					$querycond = array('where'=>$where,'joins'=>$joins);
 					$page = (int)$_REQUEST['page'];								
 					$sectionID = (int)$_REQUEST['section'];
@@ -133,13 +163,14 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$entrys = $this->checkType($records);
 					
 					$entries = array('entries' => $entrys);
-					
+					// insert entries into temp file before export completion
 					if($entries != ''){
 						$this->__insert($entries,$sectionID,$type);	
 					}
 					
+					// checks if every single page has been exported before returning more data to deal with file download
 					if($totalpages != $page){
-						
+						// returns an array of values to grab next page in js
 						$next = array(
 									'section' => $sectionID,
 									'page' => $page,
@@ -151,17 +182,27 @@ ini_set('xdebug.var_display_max_data', 1024);
 						);
 						$this->_Result = $next;
 					}elseif($entries['entries'] == ''){
+						// returns an alert if there are no entries in the section
 						$this->_Result = array('progress'=>'noentries');			
 					}else{						
+						// returns for completion of the current batch of entries
 						$this->_Result = array('progress'=>'completed','section'=>$sectionID,'type'=>$type);									
 					}
 			}
+			
+			/*********************************
+				function checkType()
+				$records : contains all the entry records from the section
+				
+			********************************/
 			private function checkType($records){
 				$sectionID = $_REQUEST['section'];
 				$sm = new SectionManager($this);
 				$section = $sm->fetch($sectionID);			
 				$fields = $section->fetchFields();
 				$type = $_REQUEST['type'];
+				
+				// according to the type value selected grabs data in different ways with each of their relevant functions
 				if($type == 'json'){
 					$entrys = $this->__getJsonValues($records,$fields,$section);
 				}elseif($type == 'xml'){
@@ -174,7 +215,11 @@ ini_set('xdebug.var_display_max_data', 1024);
 			}
 			
 			
+			/*********************************
+				function __getCsvValues()
+				$array 	: contains all the entries retrieved from the section
 			
+			********************************/
 			
 			private function __getCsvValues($array){						
 				$ents = array();
@@ -182,16 +227,22 @@ ini_set('xdebug.var_display_max_data', 1024);
 					
 				foreach($array as $en => $ent){
 					$data = array_values((array)$ent);
-					$all = $fetch->getVals($data[1]);
-					
-					$ents[] = implode(',',$all);
-					
+					$all = $fetch->getVals($data[1]);					
+					$ents[] = implode(',',$all);					
 				}
 				
 				$l = "\r\n".implode("\r\n",$ents);		
 				return $l;
 			}
 			
+			
+			/*********************************
+				function __getJsonValues()
+				$array 	: contains all the entries retrieved from the section
+				$field : contains the field values in order to create the correct json structure
+				$section : contains the section id 
+				
+			********************************/
 			private function __getJsonValues($array,$field,$section){						
 				$fetch = new Helpers();
 				$fields = $fetch->__getField($field,true);
@@ -199,7 +250,6 @@ ini_set('xdebug.var_display_max_data', 1024);
 				$count = count($array);
 				$json = array();				
 				$a = array();
-				//var_dump($array);
 				foreach($array as $en => $ent){						
 					$data = array_values((array)$ent);										
 					$fields = array_values($fields);
@@ -235,6 +285,14 @@ ini_set('xdebug.var_display_max_data', 1024);
 				return $j;
 			}
 			
+			
+			/*********************************
+				function __getXMLValues()
+				$array 	: contains all the entries retrieved from the section
+				$field : contains the field values in order to create the correct json structure
+				$section : contains the section id 
+				
+			********************************/
 			private function __getXMLValues($array,$field,$section){		
 				$fetch = new Helpers();
 				$fields = $fetch->__getField($field,true);
@@ -269,18 +327,23 @@ ini_set('xdebug.var_display_max_data', 1024);
 					$xml = new ArrayToXml();
 					$json[] = $xml->generate_valid_xml_from_array($a, 'entry');	
 					
-				}	
-				
-				
-				
-				$j = implode($json);	
-				
+				}												
+				$j = implode($json);					
 				return $j;
 			}
+			
+			
 			public function getData(){
 				return $this->_data;
 			}
 			
+			/*********************************
+				function __insert()
+				$array 	: contains all the entries retrieved from the section
+				$type : contains the type of file requested for export
+				$sectionID : contains the section id 
+				
+			********************************/
 			private function __insert($array,$sectionID,$type){
 				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
 				$c = count($array);

@@ -68,7 +68,6 @@ Class extension_importexport extends Extension
 						$a->setAttribute('class','button drawer horizontal export-button');
 						$a->setAttribute('data-sectionhandle',$sectionhandle);
 						if(isset($_GET['filter'])){
-							$keys = 
 							$js = array_keys($_GET['filter']);
 							$key = $js[0];
 							$k = explode(':',$_GET['filter'][$key]);
