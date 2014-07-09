@@ -55,7 +55,7 @@ Class Helpers{
 							$a[] = $dat['file'];
 							continue;
 						}else{
-							$a[] =  'empty';							
+							$a[] =  '';							
 							continue;
 						}	
 						
@@ -84,7 +84,7 @@ Class Helpers{
 								$a[] = '"'.$dat['file'].'"';
 								continue;
 							}else{
-								$a[] =  'empty';							
+								$a[] =  '""';							
 								continue;
 							}
 					}else{
@@ -105,7 +105,7 @@ Class Helpers{
 							$a[] = $dat['file'];
 							continue;
 						}else{
-							$a[] =  'empty';							
+							$a[] =  '';							
 							continue;
 						}	
 					}

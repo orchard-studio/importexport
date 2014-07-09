@@ -61,7 +61,7 @@
 					
 					}								
 				}else{
-					$content = '['.rtrim(file_get_contents($file),',').']';
+					$content = '{ "entries" : ['.rtrim(file_get_contents($file),',').']}';
 					$handle = fopen($file,'w');
 					fwrite($handle,$content);
 					fclose($handle);
@@ -310,18 +310,19 @@
 									}else{
 										$a[$f] = $data[$fi]['relation_id'];									
 									}
+									
 								}elseif(array_key_exists('file',$data[$fi]) && $data[$fi]['file'] != null){
 									$a[$f] = $data[$fi]['file'];
 									
 								}else{
-									$a[$f] =  'empty';							
+									$a[$f] =  '""';							
 									
 								}	
 								
 							}							
 					}					
 					$json[] = json_encode($a);					
-				}								
+				}					
 				$j = implode(',',$json);				
 				return $j;
 			}
@@ -361,7 +362,7 @@
 									$a[$f] = $data[$fi]['file'];
 									
 								}else{
-									$a[$f] =  'empty';							
+									$a[$f] =  '""';							
 									
 								}	
 								

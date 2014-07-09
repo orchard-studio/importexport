@@ -50,11 +50,17 @@
 			
 			private function __getCSV()
 			{
-					$fname = MANIFEST.'/tmp/data-1.json';
+					$fname = MANIFEST.'/tmp/data-1.csv';
 					$data = file_get_contents($fname);
-					$content = json_decode($data);
-					$container->titles = $content[0];
-					$container->data = $content;
+					$content = explode("\r\n",$data);
+					
+					$container->titles = explode(',',$content[0]);
+					unset($content[0]);
+					$array =array();
+					foreach($content as $contents){
+						$array[] = explode(',',str_replace('"','',$contents));
+					}
+					$container->data = $array;					
 					return $container;				
 			}
 			
@@ -69,8 +75,8 @@
 					$data = file_get_contents($fname);					
 					$fm = new FieldManager();
 					$t = array();										
-					$container = json_decode($data);					
-					return $container;					
+					$container = (array)json_decode($data);					
+					return $container['entries'];					
 			}
 			/*private function importJson($json,$csvNode){
 		
@@ -213,14 +219,18 @@
 						// Import this row:
 						if($ext == 'json'){
 							$row = array_values((array) $csv);									
+							
 							$r =array();
 							$x =array();
 							foreach($row as $obj){
 								$x[] = $this->objtoArray($obj,$r);
 							}							
 							unset($row);
-							$row = $x[$i];
-							
+							if($x[$i] == null){
+								$row = $x[$i];							
+							}else{
+								$row = array_values($x[$i]);							
+							}
 						}
 						elseif($ext == 'csv'){
 							$row = array_values((array) $csvData);
@@ -232,6 +242,7 @@
 							unset($row);
 							
 							$row = $x[$i];
+							//var_dump($row);
 							
 						}elseif($ext == 'xml'){
 							
@@ -241,29 +252,26 @@
 								$x[] = (array) $obj;//$this->objtoArray($obj,$r);
 							}							
 							unset($row);
-							
-							$row = $x[0][$i];
+							//var_dump($x);
+							$row = array_values((array)$x[0][$i]);
+							//var_dump($row);
 							//var_dump($x[0]);
 							//var_dump($i);
 						}
 						
 						if ($row != false) {
-								//var_dump($row);
-								if(array_key_exists('id',$row)){
-									
-									$entry->set('id',$row['id']);
-																		
-									//die;
-									//$entry->assignEntryId($row['id']);
-									unset($row['id']);									
-								}elseif(is_numeric($row[0])){
-									$entry->set('id',$row[0]);
-									
-									//var_dump($entry);
-									//die;
-									//$entry->assignEntryId($row['id']);
+								
+								
+								//if(array_key_exists('id',$row)){									
+									//$entry->set('id',$row['id']);
+									//$id = $row['id'];
+									//unset($row['id']);									
+								//}elseif(is_numeric((int)$row[0])){
+									$entry->set('id',$row[0]);								
+									//$id = $row[0];
 									unset($row[0]);				
-								}
+								//}
+								
 							// If a unique field is used, make sure there is a field selected for this:
 							if ($uniqueField != 'no' && $fieldIDs[$uniqueField] == 0) {
 								die(__('[ERROR: No field id sent for: "' . $csvTitles[$uniqueField] . '"]'));
@@ -312,8 +320,7 @@
 								
 								foreach ($row as $val => $value)
 								{
-									
-										//var_dump($value);
+																			
 										//var_dump($val);
 										
 										
@@ -330,10 +337,11 @@
 												// Get the corresponding field-type:
 												$type = $field->get('type');
 												
-												if($type == 'upload' && file_exists($value) == false){
+												/*if($type == 'upload' && file_exists($value) == false){
 													$value = '';
-												}
-												
+												}*/
+												//var_dump($value);
+												//var_dump($field);
 												if (isset($drivers[$type])) {
 													$drivers[$type]->setField($field);													
 													$data = $drivers[$type]->import($value, $entryID);													
@@ -341,6 +349,7 @@
 													$drivers['default']->setField($field);																									
 													$data = $drivers['default']->import($value, $entryID);													
 												}
+												
 												// Set the data:
 												$msg->data = $data;
 												$msg->fields = $fieldID;
@@ -356,8 +365,26 @@
 										}
 									$j++;
 								}
-								
-								$entry->commit();
+								//if($id){
+									//$check = $em->fetch($id);
+									//var_dump($check[0]);
+									//var_dump($entry);
+									//die;
+									//if($check == null){
+										
+										//$em->add($entry);
+										//var_dump($bool);
+										//die;
+										//$entry->commit();
+									//}else{
+										//$em->edit($entry);
+										//$entry->commit();
+								//	}
+								//}else{
+										$entry->commit();
+								//}
+								//var_dump($entry);
+								//$entry->commit();
 								// Store the entry:
 								
 							}

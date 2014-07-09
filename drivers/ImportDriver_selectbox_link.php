@@ -23,7 +23,7 @@ class ImportDriver_selectbox_link extends ImportDriver_default
      */
     private function getRelatedField()
     {
-        // Get the correct ID of the related fields
+        // Get the correct ID of the related fields		
         $related_field = Symphony::Database()->fetchVar('related_field_id', 0, 'SELECT `related_field_id` FROM `tbl_fields_selectbox_link` WHERE `field_id` = ' . $this->field->get('id'));
 
         return $related_field;
@@ -38,7 +38,9 @@ class ImportDriver_selectbox_link extends ImportDriver_default
     public function import($value, $entry_id = null)
     {
         // Import selectbox link:
+		
         $related_field_id = $this->getRelatedField();
+		
         $data = explode(',', $value);
         $related_ids = array('relation_id'=>array());
         foreach ($data as $relationValue)

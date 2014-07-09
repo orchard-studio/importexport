@@ -98,18 +98,44 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $this->Form->setValue($xslt->generate());				
         $this->Form->setAttribute('enctype', 'multipart/form-data');
     }
+private function arrayToCsv( array &$fields, $delimiter = ',', $enclosure = '"', $encloseAll = true, $nullToMysqlNull = false ) {
+    $delimiter_esc = preg_quote($delimiter, '/');
+    $enclosure_esc = preg_quote($enclosure, '/');
 
+    $output = array();
+    foreach ( $fields as $field ) {
+        if ($field === null && $nullToMysqlNull) {
+            $output[] = 'NULL';
+            continue;
+        }
+		if(is_array($field)){
+			$field = $this->arrayToCsv($field);
+		}
+        // Enclose fields containing $delimiter, $enclosure or whitespace
+        if ( $encloseAll || preg_match( "/(?:${delimiter_esc}|${enclosure_esc}|\s)/", $field ) ) {
+            $output[] = $enclosure . str_replace($enclosure, $enclosure, $field) . $enclosure;
+        }
+        else {
+            $output[] = $field;
+        }
+    }
+
+    return implode( $delimiter, $output );
+}
     /**
      * Get the CSV object as it is stored in the database.
      * @return bool|mixed   the CSV object on success, false on failure
      */
     private function __getCSV($csv)
     {
-			$fname = MANIFEST.'/tmp/data-1.json';			
+			$fname = MANIFEST.'/tmp/data-1.csv';			
 			if(file_exists($fname)){
 				unlink($fname);
-			}			
-			file_put_contents($fname,json_encode($csv->data));			
+			}
+			$contents = file_get_contents($csv);
+			
+			file_put_contents($fname,$contents);
+			
     }
 	private function JsonToCsv($json){
 			$fname = MANIFEST.'/tmp/data-2.json';		
@@ -130,23 +156,26 @@ class contentExtensionImportexportIndex extends AdministrationPage
 		
 		$fm = new FieldManager();
 		$t = array();		
-		$json = json_decode($json);//explode('},{',str_replace(']','',str_replace('[','',$json)));
+		//$json = json_decode($json);//explode('},{',str_replace(']','',str_replace('[','',$json)));
 		$ja = array();
 		
-		foreach($json as $js => $j){
+		foreach($json['entries'] as $js => $j){
 			$array = (array) $j;
 			
 			foreach($array as $arr => $ar){						
 				$t[] = $arr;
+				//var_dump($ar);
 			}
 			
 			
 		}
+		//die;
 		$t = array_unique($t);
+		
 		$count = new XMLElement('count',$linecount);
 		foreach($t as $f => $field){
 			if($f != 'id'){
-							$csvNode->appendChild(new XMLElement('key', $field));
+							$csvNode->appendChild(new XMLElement('key', ucwords($field)));
 						}else{
 							$csvNode->appendChild(new XMLElement('id', $field));
 						}
@@ -171,17 +200,13 @@ class contentExtensionImportexportIndex extends AdministrationPage
 			$fname = MANIFEST.'/tmp/data-2.json';	
 			$data = file_get_contents($fname);			
 			$fm = new FieldManager();
-			$t = array();		
-			$json = explode('},{',str_replace(']','',str_replace('[','',$data)));			
-			$ja = array();
-			foreach($json as $js => $jso){
-				$ja[] = trim(str_replace('},','',str_replace('{','',$jso)));			
-			}
-			$json = '[{'.implode("},{",$ja).'}]';						
-			$container = json_decode($json);
-			$linecount = count($container);			
+			$jscheck = json_decode($data);
+			
+			$entries = (array) $jscheck;
+			
+			$linecount = count($entries['entries']);			
 		}elseif($ext == 'csv'){			
-			$this->__getCSV($csv);
+			$this->__getCSV($_FILES['csv-file']['tmp_name']);
 			$linecount = count(file($_FILES['csv-file']['tmp_name']));
 		}elseif($ext == 'xml'){
 			
@@ -207,7 +232,8 @@ class contentExtensionImportexportIndex extends AdministrationPage
         $fields = $section->fetchFields();
         foreach ($fields as $field)
         {
-            $fieldsNode->appendChild(new XMLElement('field', $field->get('label'), array('id' => $field->get('id'))));
+			//$xml->setAttribute('handle',strtolower($field->get('label')));
+            $fieldsNode->appendChild(new XMLElement('field', ucwords($field->get('label')), array('id' => $field->get('id'))));
         }
         $xml->appendChild($fieldsNode);
 		
@@ -217,7 +243,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
 		
 		
 			$json = $csv->file_data;			
-			$this->importJson($json,$csvNode,$sectionID,$xml);
+			$this->importJson($entries,$csvNode,$sectionID,$xml);
 			
 			
 		}elseif($ext == 'csv'){
@@ -231,7 +257,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
 				//$key = explode(',',$key);
 				if($key != 'id'){
 					//foreach($key as $k => $ey){
-						$csvNode->appendChild(new XMLElement('key', $key));
+						$csvNode->appendChild(new XMLElement('key', ucwords($key)));
 					//}
 				}else{
 					$csvNode->appendChild(new XMLElement('id', $key));
@@ -253,7 +279,7 @@ class contentExtensionImportexportIndex extends AdministrationPage
 					$key = (array) $key;
 					foreach($key as $k => $ey){
 						if($k != 'id'){
-							$csvNode->appendChild(new XMLElement('key', $k));
+							$csvNode->appendChild(new XMLElement('key', ucwords(str_replace('-',' ',$k))));
 						}else{
 							$csvNode->appendChild(new XMLElement('id', $k));
 						}
