@@ -250,8 +250,9 @@ private function arrayToCsv( array &$fields, $delimiter = ',', $enclosure = '"',
 		
 		
 			$count = new XMLElement('count',$linecount);
+			$titles = $csv->titles;
 			
-			foreach ($csv->titles as $key)
+			foreach ($titles as $key)
 			{
 				//var_dump($key);
 				//$key = explode(',',$key);
@@ -271,23 +272,41 @@ private function arrayToCsv( array &$fields, $delimiter = ',', $enclosure = '"',
 			$fname = MANIFEST.'/tmp/data-3.xml';			
 			$se = (array) simplexml_load_file($fname);			
 			$count = new XMLElement('count',$linecount);	
-			$i = 0;
-			foreach ($se['entry'] as $key)
-			{					
-				++$i;
-				if($i <= 1){
-					$key = (array) $key;
-					foreach($key as $k => $ey){
-						if($k != 'id'){
-							$csvNode->appendChild(new XMLElement('key', ucwords(str_replace('-',' ',$k))));
-						}else{
-							$csvNode->appendChild(new XMLElement('id', $k));
+			$i = 0;			
+			if(is_object($se['entry'])){
+			
+				$key = (array) $se['entry'];
+				
+				foreach($key as $k => $ey){
+					if($k != 'id'){
+						$csvNode->appendChild(new XMLElement('key', ucwords(str_replace('-',' ',$k))));
+					}else{
+						$csvNode->appendChild(new XMLElement('id', $k));
+					}
+					
+				}
+			}else{
+					foreach ($se['entry'] as $key)
+					{					
+						++$i;
+						
+						if($i <= 1){
+							
+							$key = (array) $key;
+							
+							foreach($key as $k => $ey){
+								if($k != 'id'){
+									$csvNode->appendChild(new XMLElement('key', ucwords(str_replace('-',' ',$k))));
+								}else{
+									$csvNode->appendChild(new XMLElement('id', $k));
+								}
+								
+							}
+						
 						}
 						
-					}
-				}
-				
-			}			
+					}	
+			}				
 			$xml->appendChild($count);						
 		}
 		$fileNode = new XMLElement('file');

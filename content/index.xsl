@@ -42,7 +42,7 @@
                 <p>Don't worry, going to the next step won't import anything yet.</p>
                 <input name="import-step-2" type="submit" value="Next step"/>
             </fieldset>
-            <fieldset class="right">
+           <!-- <fieldset class="right">
                 <h3>Export</h3>
 				<p>Please choose the type you want to export as</p>
 				<label>
@@ -75,7 +75,7 @@
                     <a href="http://symphonyextensions.com/extensions/publish_shortcuts/">publish shortcuts extension</a>
                     this can be a great addition to your clients' sites.
                 </p>
-            </fieldset>
+            </fieldset>-->
         </div>
         <xsl:if test="data/@multilanguage = 'yes'">
             <div class="multilanguage importer">

@@ -6,7 +6,11 @@
 		require_once(BOOT . '/func.utilities.php');
 		require_once(EXTENSIONS . '/importexport/lib/php-export-data/php-export-data.class.php');
 		require_once(EXTENSIONS . '/importexport/lib/parsecsv-0.3.2/parsecsv.lib.php');		
-		require_once(TOOLKIT . '/class.jsonpage.php');		
+		require_once(TOOLKIT . '/class.jsonpage.php');	
+		require_once(TOOLKIT . '/class.sectionmanager.php');
+		require_once(TOOLKIT . '/class.fieldmanager.php');
+		require_once(TOOLKIT . '/class.entrymanager.php');
+		require_once(TOOLKIT . '/class.entry.php');		
 		require_once(EXTENSIONS . '/importexport/lib/helpers/helpers.sym.php');
 		class contentExtensionImportexportImport extends JSONPage{
 			
@@ -55,6 +59,7 @@
 					$content = explode("\r\n",$data);
 					
 					$container->titles = explode(',',$content[0]);
+					
 					unset($content[0]);
 					$array =array();
 					foreach($content as $contents){
@@ -78,23 +83,7 @@
 					$container = (array)json_decode($data);					
 					return $container['entries'];					
 			}
-			/*private function importJson($json,$csvNode){
-		
-				$fm = new FieldManager();
-				$t = array();		
-				$json = explode('},{',str_replace(']','',str_replace('[','',$json)));
-				array_pop($json);
-				$ja = array();
-				foreach($json as $js => $jso){
-					$ja[] = str_replace('{','',$jso);
-				}
-				$json = '[{'.implode("},{",$ja).'}]';
-				$json = json_decode($json);
-				$t = array_unique($t);			
-				foreach($t as $f => $field){
-					$csvNode->appendChild(new XMLElement('key', $field));
-				}
-			}*/
+			
 
 			private function __addVar($name, $value)
 			{
@@ -197,16 +186,10 @@
 						);	
 					
 					}
-					
-					
 					// Load the CSV data of the specific rows:
 					$csvTitles = $csv->titles;
 					$csvData = $csv->data; 
-					///$currentamount = $_REQUEST['count'];
-					//$newamount = $currentRow + 50;
 					$a = 0;
-					
-					//while($currentamount < $newamount; $currentamount++)
 					for ($i = $currentRow * 200; $i < ($currentRow + 1) * 200; $i++)
 					{	
 						$a = $i;						
@@ -234,44 +217,33 @@
 						}
 						elseif($ext == 'csv'){
 							$row = array_values((array) $csvData);
-							//unset($row[0]);
 							$x = array();
 							foreach($row as $r => $ro){
 								$x[] = $this->returnLast2Levels($ro);
 							}
-							unset($row);
-							
+							unset($row);							
 							$row = $x[$i];
-							//var_dump($row);
-							
-						}elseif($ext == 'xml'){
-							
+						}elseif($ext == 'xml'){							
 							$r =array();
-							$x =array();							
-							foreach($csv as $obj){
-								$x[] = (array) $obj;//$this->objtoArray($obj,$r);
-							}							
+							$x =array();	
+							foreach($csv as $obj){								
+								if(is_array($obj)){
+									foreach($obj as $arr){
+										$x[] = (array)$arr;
+									}
+								}else{
+									$x[] = (array) $obj;
+								}								
+							}									
 							unset($row);
-							//var_dump($x);
-							$row = array_values((array)$x[0][$i]);
-							//var_dump($row);
-							//var_dump($x[0]);
-							//var_dump($i);
-						}
-						
-						if ($row != false) {
-								
-								
-								//if(array_key_exists('id',$row)){									
-									//$entry->set('id',$row['id']);
-									//$id = $row['id'];
-									//unset($row['id']);									
-								//}elseif(is_numeric((int)$row[0])){
-									$entry->set('id',$row[0]);								
-									//$id = $row[0];
-									unset($row[0]);				
-								//}
-								
+							if(array_key_exists(1,$x)){
+								$slice = (array) $x[$i];//[$i]
+							}else{
+								$slice = (array) $x[0];//[$i]
+							}
+							$row = array_values($slice);							
+						}						
+						if ($row != false) {																		
 							// If a unique field is used, make sure there is a field selected for this:
 							if ($uniqueField != 'no' && $fieldIDs[$uniqueField] == 0) {
 								die(__('[ERROR: No field id sent for: "' . $csvTitles[$uniqueField] . '"]'));
@@ -280,17 +252,13 @@
 							// Unique action:
 							if ($uniqueField != 'no') {
 								// Check if there is an entry with this value:
-								$field = $fm->fetch($fieldIDs[$uniqueField]);
-								
-								$type = $field->get('type');
-								
+								$field = $fm->fetch($fieldIDs[$uniqueField]);								
+								$type = $field->get('type');								
 								if (isset($drivers[$type])) {
-									$drivers[$type]->setField($field);
-									
+									$drivers[$type]->setField($field);									
 									$entryID = $drivers[$type]->scanDatabase($row[$csvTitles[$uniqueField]]);
 								} else {
-									$drivers['default']->setField($field);
-									
+									$drivers['default']->setField($field);									
 									$entryID = $drivers['default']->scanDatabase($row[$csvTitles[$uniqueField]]);
 								}								
 								if ($entryID != false) {
@@ -317,88 +285,62 @@
 							if (!$ignore) {
 								// Do the actual importing:
 								$j = 0;
+								$id = $row[0];
 								
+								unset($row[0]);
 								foreach ($row as $val => $value)
 								{
-																			
-										//var_dump($val);
-										
-										
-										if($val != 'id'){
-											
+											$fm = new FieldManager($this);
 											// When no unique field is found, treat it like a new entry
 											// Otherwise, stop processing to safe CPU power.
-											$fieldID = intval($fieldIDs[$j]);
-											
+											$fieldID = intval($fieldIDs[$j]);											
 											// If $fieldID = 0, then `Don't use` is selected as field. So don't use it! :-P
 											if ($fieldID != 0) {
-												$field = $fm->fetch($fieldID);
+											
+												$field = $fm->fetch($fieldID);												
 												
 												// Get the corresponding field-type:
-												$type = $field->get('type');
-												
-												/*if($type == 'upload' && file_exists($value) == false){
-													$value = '';
-												}*/
-												//var_dump($value);
-												//var_dump($field);
+												$type = $field->get('type');												
 												if (isset($drivers[$type])) {
 													$drivers[$type]->setField($field);													
 													$data = $drivers[$type]->import($value, $entryID);													
 												} else {
 													$drivers['default']->setField($field);																									
 													$data = $drivers['default']->import($value, $entryID);													
-												}
-												
+												}												
 												// Set the data:
 												$msg->data = $data;
 												$msg->fields = $fieldID;
 												if ($data != false) {
 													$entry->setData($fieldID, $data);
 												}
-												
-											
-											}
-											//var_dump($entry);	
-											//var_dump($fieldID);	
-												
-										}
+											}																					
 									$j++;
 								}
-								//if($id){
-									//$check = $em->fetch($id);
-									//var_dump($check[0]);
+								$checkid = $em->fetch($id,$sectionID);	
+								//var_dump($checkid);
+								if($checkid[0] == null){							
 									//var_dump($entry);
-									//die;
-									//if($check == null){
-										
-										//$em->add($entry);
-										//var_dump($bool);
-										//die;
-										//$entry->commit();
-									//}else{
-										//$em->edit($entry);
-										//$entry->commit();
-								//	}
-								//}else{
-										$entry->commit();
-								//}
-								//var_dump($entry);
-								//$entry->commit();
-								// Store the entry:
+									$entry->set('id',$id);	
+									$em->add($entry);									
+								}else{
+									$entry->set('id',$id);																																	
+									//var_dump($entry);
+									$em->edit($entry);
+								}
 								
+								
+								
+								//$entry->commit();							
 							}
 							//die;
 						}
-					}		
-			
+						//die;
+					}							
 					$nextFields['currentamount'] = $a +1;	
-					//die;
 				} else {
 					die(__('[ERROR: Data not found!]'));
 				}
-				
-				
 				if (count($updated) > 0) {
 					$messageSuffix .= ' ' . __('(updated: ') . implode(', ', $updated) . ')';
 				}

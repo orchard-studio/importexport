@@ -34,7 +34,10 @@ Class Helpers{
 	********************************/
 	function getVals($data,$noquotes = false,$f = false,$fi = false){
 		$a = array();				
+		$i = 0;
 		foreach($data as $d => $dat){				
+		$i++;
+				var_dump($d);
 				if($f == $d){
 					if($noquotes){
 						
@@ -181,9 +184,9 @@ Class Helpers{
 		foreach($fields as $field){				
 			$id = $field->get('id');
 			$label = $field->get('label');
-			
+			$order = $field->get('sortorder');
 			if($noquotes){
-				$r[$id] = $label;									
+				$r[$order] = $label;									
 			}else{
 				$r[] = '"'.$label.'"';															
 				

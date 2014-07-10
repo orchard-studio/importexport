@@ -244,7 +244,7 @@
 				}elseif($type == 'xml'){
 					$entrys = $this->__getXMLValues($records,$fields,$section);
 				}elseif($type == 'csv'){
-					$entrys = $this->__getCsvValues($records);
+					$entrys = $this->__getCsvValues($records,$fields,$section);
 				}
 				
 				return $entrys;
@@ -257,21 +257,62 @@
 			
 			********************************/
 			
-			private function __getCsvValues($array){						
-				$ents = array();
+			private function __getCsvValues($array,$field,$section){						
 				$fetch = new Helpers();
-				
-				foreach($array as $en => $ent){
-					$data = array_values((array)$ent);
-					
-					//$all  = $data[0]['id'];
-					$all = $fetch->getVals($data[1]);
-					
-					$ents[] = '"'.$data[0]['id'] .'",' .implode(',',$all);					
-				}
-				
-				$l = "\r\n".implode("\r\n",$ents);		
-				return $l;
+				$fields = $fetch->__getField($field,true);				
+				$c = count($fields);
+				$count = count($array);
+				$json = array();				
+				$a = array();
+				$fieldkeys = array_keys($field);
+				$fm = new FieldManager($this);
+				foreach($array as $en => $ent){						
+					$data = array_values((array)$ent);	
+					$a['id'] = '"'.$data[0]['id'].'"';
+					$keys = array_keys($data[1]);
+					$d = array();
+					foreach($keys as $key => $ke){
+						$fs = $fm->fetch($ke,$section);
+						$order = $fs->get('sortorder');						
+						$d[] = $order; 
+					}					
+					$new = array_combine($d,$data[1]);					
+					unset($data);					
+					$data = $new;					
+					$fields = array_values($fields);					
+					foreach($fields as $fi => $f){
+														
+							if($data[$fi] != null){
+								
+								if(array_key_exists('value',$data[$fi]) && $data[$fi]['value'] != null){
+									$a[$f] =  '"'.$data[$fi]['value'].'"';
+									
+								}elseif(array_key_exists('password',$data[$fi]) && $data[$fi]['password'] != null){
+									$a[$f] = '"'.$data[$fi]['password'].'"';
+									
+								}elseif(array_key_exists('relation_id',$data[$fi]) && $data[$fi]['relation_id'] != null){
+									if(is_array($data[$fi]['relation_id'])){
+										$a[$f] = '"'.implode(',', $data[$fi]['relation_id']).'"';
+									}else{
+										$a[$f] = '"'.$data[$fi]['relation_id'].'"';									
+									}
+									
+								}elseif(array_key_exists('file',$data[$fi]) && $data[$fi]['file'] != null){
+									$a[$f] = '"'.$data[$fi]['file'].'"';
+									
+								}else{
+									$a[$f] =  '" "';							
+									
+								}	
+								
+							}else{
+								$a[$f] = '""';
+							}							
+					}					
+					$json[] = implode(',',$a);									
+				}				
+				$j = "\r\n".implode("\r\n",$json);				
+				return $j;
 			}
 			
 			
@@ -284,20 +325,31 @@
 			********************************/
 			private function __getJsonValues($array,$field,$section){						
 				$fetch = new Helpers();
-				$fields = $fetch->__getField($field,true);
+				$fields = $fetch->__getField($field,true);				
 				$c = count($fields);
 				$count = count($array);
 				$json = array();				
 				$a = array();
+				$fieldkeys = array_keys($field);
+				$fm = new FieldManager($this);
 				foreach($array as $en => $ent){						
-					$data = array_values((array)$ent);										
-					$fields = array_values($fields);					
+					$data = array_values((array)$ent);	
 					$a['id'] = $data[0]['id'];
-					$data = array_values($data[1]);
-					
-					foreach($fields as $fi => $f){							
-							
+					$keys = array_keys($data[1]);
+					$d = array();
+					foreach($keys as $key => $ke){
+						$fs = $fm->fetch($ke,$section);
+						$order = $fs->get('sortorder');						
+						$d[] = $order; 
+					}					
+					$new = array_combine($d,$data[1]);					
+					unset($data);					
+					$data = $new;					
+					$fields = array_values($fields);					
+					foreach($fields as $fi => $f){
+														
 							if($data[$fi] != null){
+								
 								if(array_key_exists('value',$data[$fi]) && $data[$fi]['value'] != null){
 									$a[$f] =  $data[$fi]['value'];
 									
@@ -319,6 +371,8 @@
 									
 								}	
 								
+							}else{
+								$a[$f] = '';
 							}							
 					}					
 					$json[] = json_encode($a);					
@@ -326,7 +380,19 @@
 				$j = implode(',',$json);				
 				return $j;
 			}
-			
+			private function __cleanArray(&$array)
+			{
+				$max = key(end($array)); //Get the final key as max!
+				var_dump($max);
+				for($i = 0; $i < $max; $i++)
+				{
+					
+					if(!isset($array[$i]))
+					{
+						$array[$i] = '';
+					}
+				}
+			}
 			
 			/*********************************
 				function __getXMLValues()
@@ -341,11 +407,23 @@
 				$c = count($fields);
 				$json = array();				
 				$a = array();
+				$fieldkeys = array_keys($field);
+				$fm = new FieldManager($this);
 				foreach($array as $en => $ent){						
 					$data = array_values((array)$ent);										
-					$fields = array_values($fields);
+					//$fields = array_values($fields);
 					$a['id'] = $data[0]['id'];
-					$data = array_values($data[1]);
+					$keys = array_keys($data[1]);
+					$d = array();
+					foreach($keys as $key => $ke){
+						$fs = $fm->fetch($ke,$section);
+						$order = $fs->get('sortorder');						
+						$d[] = $order; 
+					}					
+					$new = array_combine($d,$data[1]);					
+					unset($data);					
+					$data = $new;						
+					$fields = array_values($fields);		
 					foreach($fields as $fi => $f){
 							if($data[$fi] != null){
 								if(array_key_exists('value',$data[$fi]) && $data[$fi]['value'] != null){
@@ -362,10 +440,12 @@
 									$a[$f] = $data[$fi]['file'];
 									
 								}else{
-									$a[$f] =  '""';							
+									$a[$f] =  '';							
 									
 								}	
 								
+							}else{
+								$a[$f] = '';
 							}							
 					}				
 					$xml = new ArrayToXml();
