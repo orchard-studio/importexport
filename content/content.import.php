@@ -25,11 +25,15 @@
 				}
 			
 			}
+			
+			
 			private function __removefiles(){
 				array_map('unlink', glob(MANIFEST."/tmp/*"));
 				$nextFields = array('progress'=>'finished');
 				$this->_Result = $nextFields;
 			}
+			
+			
 			private function getDrivers()
 			{
 				$classes = glob(EXTENSIONS . '/importexport/drivers/*.php');
@@ -52,6 +56,7 @@
 				return $drivers;
 			}
 			
+			
 			private function __getCSV()
 			{
 					$fname = MANIFEST.'/tmp/data-1.csv';
@@ -69,11 +74,13 @@
 					return $container;				
 			}
 			
+			
 			private function __getXML(){
 					$fname = MANIFEST.'/tmp/data-3.xml';			
 					$se = (array) simplexml_load_file($fname);					
 					return $se;
 			}
+			
 			
 			private function JsonToCsv(){
 					$fname = MANIFEST.'/tmp/data-2.json';					
@@ -90,6 +97,7 @@
 				$this->Form->appendChild(new XMLElement('var', $value, array('class' => $name)));
 			}		
 			
+			
 			private function returnLast2Levels($item){
 				
 				foreach($item as $i => $obj){
@@ -102,6 +110,8 @@
 				}
 				return $items;
 			}
+			
+			
 			private function objToArray($obj, &$arr){
 
 				if(!is_object($obj) && !is_array($obj)){
@@ -163,7 +173,7 @@
 					}else{
 						$count = (int) count($csv['entry']);					
 					}
-					$co = intval($currentRow * 200);
+					$co = intval($currentRow * 50);
 					if($currentamount <= $count){
 						$nextFields = array(
 							'row'=> $currentRow,
@@ -190,7 +200,7 @@
 					$csvTitles = $csv->titles;
 					$csvData = $csv->data; 
 					$a = 0;
-					for ($i = $currentRow * 200; $i < ($currentRow + 1) * 200; $i++)
+					for ($i = $currentRow * 50; $i < ($currentRow + 1) * 50; $i++)
 					{	
 						$a = $i;						
 						// Start by creating a new entry:
@@ -285,9 +295,15 @@
 							if (!$ignore) {
 								// Do the actual importing:
 								$j = 0;
-								$id = $row[0];
 								
-								unset($row[0]);
+								if(isset($row[0]) && is_numeric($row[0])){
+									$id = $row[0];
+									unset($row[0]);
+								}else{
+									$id = '';
+								}
+								
+								
 								foreach ($row as $val => $value)
 								{
 											$fm = new FieldManager($this);
@@ -317,27 +333,29 @@
 											}																					
 									$j++;
 								}
-								$checkid = $em->fetch($id,$sectionID);	
-								//var_dump($checkid);
-								if($checkid[0] == null){							
-									//var_dump($entry);
-									$entry->set('id',$id);	
-									$em->add($entry);									
+								
+								if(isset($id)){
+									$checkid = $em->fetch($id,$sectionID);
+									//var_dump($checkid);
+									//var_dump($entry);									
+									if($checkid[0] == null || empty($checkid)){																		
+												
+											$entry->commit();
+									}else{										
+											$entry->set('id',$id);																																	
+											$entry->commit();									
+									}	
 								}else{
-									$entry->set('id',$id);																																	
-									//var_dump($entry);
-									$em->edit($entry);
-								}
-								
-								
-								
-								//$entry->commit();							
+										$entry->commit();
+								}								
 							}
-							//die;
 						}
-						//die;
-					}							
+						
+					}		
+					
+					
 					$nextFields['currentamount'] = $a +1;	
+					
 				} else {
 					die(__('[ERROR: Data not found!]'));
 				}

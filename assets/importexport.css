@@ -30,15 +30,17 @@ li.export-nav select{
 	left:0;
 	z-index:99999;
 	opacity:0.7;
-	background:#fff;
-	display:none;
+	background:#fff;	
 }
 .loader > span{
 	
 	height:45px;
 	display:block;
 	float:left;
-	background:#22c346;
+	background-image: -webkit-gradient(linear,left top,left bottom,from(#b3d47d),to(#8b3));
+	background-image: -webkit-linear-gradient(top,#b3d47d 0%,#8b3 100%);
+	background-image: linear-gradient(to bottom,#b3d47d 0%,#8b3 100%);
+	border-color: #799747;
 	position:absolute;top:0;
 }
 .loader  p{

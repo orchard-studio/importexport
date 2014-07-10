@@ -89,6 +89,7 @@ function xportcsv(fields){
 			data: newfields,
 			success: function(data, textStatus){
 				all = data;
+
 				if(data['progress'] == 'success'){					
 					if(data['page']){						
 						var percent = parseInt(data['page']) / parseInt(data['total-pages']) * 100;						
@@ -118,7 +119,7 @@ function xportcsv(fields){
 				}else if(data['progress'] == 'headers'){					
 					var file = data['file'];
 					var type = data['type'];
-					
+					alert('All Entries Imported');
 					var url = Symphony.Context.get('symphony')+ '/extension/importexport/download/?file='+file+'&type='+type;
 					window.location.replace(url)
 				}else if(data['progress'] == 'noentries'){

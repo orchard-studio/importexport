@@ -174,13 +174,16 @@ private function arrayToCsv( array &$fields, $delimiter = ',', $enclosure = '"',
 		
 		$count = new XMLElement('count',$linecount);
 		foreach($t as $f => $field){
-			if($f != 'id'){
+			
+			if($field != 'id'){
+						
+							
 							$csvNode->appendChild(new XMLElement('key', ucwords($field)));
 						}else{
 							$csvNode->appendChild(new XMLElement('id', $field));
 						}
 						
-		}
+		}		
 		$xml->appendChild($count);
 	}
     private function __importStep2Page()
