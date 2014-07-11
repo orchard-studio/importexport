@@ -119,7 +119,7 @@ function xportcsv(fields){
 				}else if(data['progress'] == 'headers'){					
 					var file = data['file'];
 					var type = data['type'];
-					alert('All Entries Imported');
+					alert(data['msg']);
 					var url = Symphony.Context.get('symphony')+ '/extension/importexport/download/?file='+file+'&type='+type;
 					window.location.replace(url)
 				}else if(data['progress'] == 'noentries'){

@@ -67,7 +67,7 @@
 					fclose($handle);
 					
 				}
-				$this->_Result = array('progress'=>'headers','file'=>$file,'type'=>$type);	
+				$this->_Result = array('progress'=>'headers','file'=>$file,'type'=>$type,'msg'=>'All Entries Exported Succesfully');	
 				
 			}
 			

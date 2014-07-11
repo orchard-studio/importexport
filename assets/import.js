@@ -25,7 +25,7 @@ jQuery(function($){
 			
 		});	
 		var ids = a.join();
-		var loader = $('<div class="loader"><p>Exporting</p></div>');
+		var loader = $('<div class="loader"><p>(Importing)</p></div>');
 		var span = $('<span></span>');
 		var container = $('<div class="container"></div>');		
 		loader.append(span);
@@ -96,7 +96,9 @@ function importRows(fields)
 				importRows(newfields);
 			}else if(data.progress == 'finished'){
 					var url = Symphony.Context.get('symphony')+ '/blueprints/sections/';
+				alert(data.msg);
 				window.location.replace(url);
+				
 			}
         }
     });

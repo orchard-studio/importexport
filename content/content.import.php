@@ -29,7 +29,7 @@
 			
 			private function __removefiles(){
 				array_map('unlink', glob(MANIFEST."/tmp/*"));
-				$nextFields = array('progress'=>'finished');
+				$nextFields = array('progress'=>'finished','msg'=>'All Entries Imported ');
 				$this->_Result = $nextFields;
 			}
 			
