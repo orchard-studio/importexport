@@ -119,30 +119,15 @@
 							foreach($keys as $key => $ke){
 								$k[] = str_replace('filter','',str_replace(']','',str_replace('[','',$ke)));
 							}
-							//$fields = implode(',',$k);
-							//var_dump($fields);
 							
 							foreach($values as $value => $va){
 								$vs = explode(':',$va);
-								$v[] = $vs[1];//str_replace('filter','',str_replace(']','',str_replace('[','',$va)));
+								$v[] = $vs[1];
 							}					
-							//$vals = implode(',',$v);
 							
-							//$a = array_combine($k,$v);
-							//var_dump($vals);
-							
-							//unset($k);
-							//unset($v);
-							//foreach($a as $fil => $filt){
-							////	$k[] = $fil.':'.$filt;
-							//}
-							//var_dump($k);
-							//$keys[] = str_replace('filter','',str_replace(']','',str_replace('[','',$keys[0])));
-							//$values[] = str_replace('regexp:','',$values[0]);
 							unset($_REQUEST['filter']);
 							$_REQUEST['filter'] = $fields.':'.$vals;
 							
-							//var_dump($_REQUEST['filter']);
 							//list($field_handle , $filter_value) = explode(':' ,$_REQUEST['filter'] , 2);
 							$field_handle  = $k;
 							$filter_value = $v;
@@ -157,8 +142,7 @@
 							}					
 							foreach ($field_names as $field_name) {								
 								//$filter_value = rawurldecode($filter_value);
-								//var_dump($filter_value);
-								//var_dump($field_name);
+								
 								$filter = Symphony::Database()->fetchVar('id' , 0 , "SELECT `f`.`id`  FROM `tbl_fields` AS `f`, `tbl_sections` AS `s`
 								WHERE `s`.`id` = `f`.`parent_section`  AND f.`element_name` = '$field_name'  AND `s`.`handle` = '" . $section->get('handle') . "' "); // LIMIT 1
 
@@ -409,6 +393,7 @@
 				$a = array();
 				$fieldkeys = array_keys($field);
 				$fm = new FieldManager($this);
+				$em = new EntryManager();
 				foreach($array as $en => $ent){						
 					$data = array_values((array)$ent);										
 					//$fields = array_values($fields);
@@ -424,7 +409,7 @@
 					unset($data);					
 					$data = $new;						
 					$fields = array_values($fields);		
-					foreach($fields as $fi => $f){
+					foreach($fields as $fi => $f){							
 							if($data[$fi] != null){
 								if(array_key_exists('value',$data[$fi]) && $data[$fi]['value'] != null){
 									$a[$f] =  $data[$fi]['value'];
@@ -433,6 +418,11 @@
 									$a[$f] = $data[$fi]['password'];
 									
 								}elseif(array_key_exists('relation_id',$data[$fi]) && $data[$fi]['relation_id'] != null){
+									
+									
+									//$id = $data[$fi]['relation_id'];
+									//$fieldentry = $em->fetch($id);
+									//var_dump($fieldentry[0]);
 									$a[$f] = $data[$fi]['relation_id'];
 									
 								}elseif(array_key_exists('file',$data[$fi]) && $data[$fi]['file'] != null){
@@ -447,7 +437,8 @@
 							}else{
 								$a[$f] = '';
 							}							
-					}				
+					}	
+					
 					$xml = new ArrayToXml();
 					$json[] = $xml->generate_valid_xml_from_array($a, 'entry');	
 					

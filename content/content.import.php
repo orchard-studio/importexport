@@ -77,7 +77,8 @@
 			
 			private function __getXML(){
 					$fname = MANIFEST.'/tmp/data-3.xml';			
-					$se = (array) simplexml_load_file($fname);					
+					$se = (array) simplexml_load_file($fname);	
+					//var_dump($se);
 					return $se;
 			}
 			
@@ -152,7 +153,7 @@
 				}
 				
 				$msg = null;
-				
+				$allentries = array();
 				
 				if ($csv != false) {
 					// Load the drivers:
@@ -200,6 +201,8 @@
 					$csvTitles = $csv->titles;
 					$csvData = $csv->data; 
 					$a = 0;
+					$csv = array_values((array)$csv);
+					
 					for ($i = $currentRow * 50; $i < ($currentRow + 1) * 50; $i++)
 					{	
 						$a = $i;						
@@ -217,41 +220,51 @@
 							$x =array();
 							foreach($row as $obj){
 								$x[] = $this->objtoArray($obj,$r);
-							}							
+							}
+							
 							unset($row);
 							if($x[$i] == null){
 								$row = $x[$i];							
 							}else{
 								$row = array_values($x[$i]);							
 							}
+							
 						}
 						elseif($ext == 'csv'){
 							$row = array_values((array) $csvData);
+							
 							$x = array();
 							foreach($row as $r => $ro){
 								$x[] = $this->returnLast2Levels($ro);
 							}
 							unset($row);							
 							$row = $x[$i];
-						}elseif($ext == 'xml'){							
+						}elseif($ext == 'xml'){	
+							$row = array_values((array) $csv);									
+							
 							$r =array();
-							$x =array();	
-							foreach($csv as $obj){								
-								if(is_array($obj)){
-									foreach($obj as $arr){
-										$x[] = (array)$arr;
-									}
-								}else{
-									$x[] = (array) $obj;
-								}								
-							}									
+							$x =array();
+							$row = json_decode(json_encode($row));
+							
+							foreach($row as $obj){
+								$x[] = $this->objtoArray($obj,$r);
+							}
+							
 							unset($row);
-							if(array_key_exists(1,$x)){
+							if($x[$i] == null){
+								$row = $x[$i];							
+							}else{
+								$row = array_values($x[$i]);							
+							}
+							
+						
+							//unset($row);
+							/*if(array_key_exists(1,$x)){
 								$slice = (array) $x[$i];//[$i]
 							}else{
 								$slice = (array) $x[0];//[$i]
 							}
-							$row = array_values($slice);							
+							$row = array_values($slice);							*/
 						}						
 						if ($row != false) {																		
 							// If a unique field is used, make sure there is a field selected for this:
@@ -296,7 +309,7 @@
 								// Do the actual importing:
 								$j = 0;
 								
-								if(isset($row[0]) && is_numeric($row[0])){
+								if(isset($row[0]) && is_numeric((int) $row[0])){
 									$id = $row[0];
 									unset($row[0]);
 								}else{
@@ -335,23 +348,26 @@
 								}
 								
 								if(isset($id)){
-									$checkid = $em->fetch($id,$sectionID);
-									//var_dump($checkid);
-									//var_dump($entry);									
-									if($checkid[0] == null || empty($checkid)){																		
-												
-											$entry->commit();
+									$checkid = $em->fetch($id);
+									$em = new EntryManager($this);
+									if($checkid == false){																		
+											$entry->set('id',$id);																																			
+											$em->add($entry);
 									}else{										
-											$entry->set('id',$id);																																	
-											$entry->commit();									
+											$entry->set('id',$id);											
+											$em->edit($entry);									
 									}	
 								}else{
 										$entry->commit();
-								}								
+										
+								}
+															
 							}
+								
 						}
 						
-					}		
+					}
+					
 					
 					
 					$nextFields['currentamount'] = $a +1;	
