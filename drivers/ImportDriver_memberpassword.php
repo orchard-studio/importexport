@@ -3,7 +3,7 @@
 /*
  * Import Driver for type: memberpassword
  */
-
+require_once LIBRARY.'/toolkit/cryptography/class.pbkdf2.php';
 class ImportDriver_memberpassword extends ImportDriver_default {
 
     /**
@@ -23,9 +23,10 @@ class ImportDriver_memberpassword extends ImportDriver_default {
      */
     public function import($value, $entry_id = null)
     {
+        $pbkdf = new PBKDF2;
         $data = $this->field->processRawFieldData($value, $this->field->__OK__);
         // Reset the value, to prevent double md5:
-        $data['password'] = trim($value);
+        $data['password'] = $pbkdf::hash(trim($value));
         return $data;
     }
 
