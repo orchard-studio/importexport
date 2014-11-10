@@ -18,8 +18,7 @@ Class extension_importexport extends Extension
 	}
 	
 	public function fetchNavigation() {
-		if(Administration::instance()->Author->isDeveloper())
-		{
+		
 			return array(
 				array(
 					'location'	=> __('System'),
@@ -27,7 +26,7 @@ Class extension_importexport extends Extension
 					'link'		=> '/'
 				)
 			);
-		}
+		
 	}
 
     public function update()

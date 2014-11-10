@@ -14,7 +14,7 @@ class ArrayToXML
 		
 		if($file != null){
 			$xml = "<?xml version='1.0' encoding='utf-8'?>\n<data>\n";
-			$xml .= file_get_contents($file);
+			$xml .= file_get_contents($file);			
 			
 			
 			//$xml .= simplexml_load_file($file,null, LIBXML_NOCDATA);
@@ -22,7 +22,7 @@ class ArrayToXML
 			$c = simplexml_load_string($xml);
 			$a = $c->asXML();
 			
-			return $a;			
+			return $xml;			
 		}else{
 			return 'No file specified' ;
 		}

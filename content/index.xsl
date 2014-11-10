@@ -51,7 +51,7 @@
                             <option value="json">JSON</option>
 							<option value="xml">XML</option>
 							<option value="csv">CSV</option>
-							<option value="excel">Excel</option>
+							<!--<option value="excel">Excel</option>-->
                     </select>
                 </label>
                 <p>Please choose a section you wish to export to a file:</p>

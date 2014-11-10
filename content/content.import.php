@@ -43,6 +43,7 @@
 			
 			private function __getCSV($csv)
 			{
+				
 				$fname = MANIFEST.'/tmp/data-1.json';
 				if($csv){			
 					if(file_exists($fname)){
@@ -53,7 +54,7 @@
 				}else{
 					$container = new stdClass();
 					$data = file_get_contents($fname);
-					$content = json_decode($data);
+					$content = json_decode($data);					
 					$container->titles = $content[0];
 					$container->data = $content;
 					
@@ -262,10 +263,11 @@
 								// Do the actual importing:
 								$j = 0;
 								
+								if($row[0] != ''){
 								foreach ($row as $val => $value)
 								{
-									
-										$msg = new stdClass();
+									$msg = new stdClass();
+										
 										// When no unique field is found, treat it like a new entry
 										// Otherwise, stop processing to safe CPU power.
 										$fieldID = intval($fieldIDs[$j]);
@@ -301,10 +303,11 @@
 									
 									$j++;
 								}
+								//var_dump($entry);
 								
 								$entry->commit();
 								// Store the entry:
-								
+								}
 							}
 							//die;
 						}

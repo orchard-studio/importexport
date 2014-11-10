@@ -233,8 +233,7 @@ ini_set('xdebug.var_display_max_data', 1024);
 				$file = MANIFEST.'/tmp/data-'.$sectionID.'.'.$type;
 				$handle = fopen($file,'a+');
 				$c = count($array);
-				var_dump($c);
-				die;
+				
 				foreach($array as $data => $dat){					
 					if($type == 'json'){
 						fwrite($handle, $dat.',');			
