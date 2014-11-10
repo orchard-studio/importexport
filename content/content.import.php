@@ -51,6 +51,7 @@
 					
 					file_put_contents($fname,json_encode($csv->data));
 				}else{
+					$container = new stdClass();
 					$data = file_get_contents($fname);
 					$content = json_decode($data);
 					$container->titles = $content[0];
@@ -264,7 +265,7 @@
 								foreach ($row as $val => $value)
 								{
 									
-										
+										$msg = new stdClass();
 										// When no unique field is found, treat it like a new entry
 										// Otherwise, stop processing to safe CPU power.
 										$fieldID = intval($fieldIDs[$j]);
